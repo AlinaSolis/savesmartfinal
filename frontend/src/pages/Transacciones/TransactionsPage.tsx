@@ -1,215 +1,181 @@
+// src/components/Layout/Sidebar.tsx
 import { useEffect, useState } from 'react'
-import { Layout } from 'antd'
-import { AnimatePresence, motion } from 'framer-motion'
+import { Layout, Menu } from 'antd'
+import {
+  DashboardOutlined,
+  SwapOutlined,
+  BulbOutlined,
+  UserOutlined,
+  BellOutlined,
+} from '@ant-design/icons'
+import { useNavigate, useLocation } from 'react-router-dom'
 
-import Sidebar from '../../components/Layout/Sidebar'
-import Button from '../../components/Layout/Button'
-import CategoryCard from '../../components/Layout/CategoryCard'
-import TransactionItem from '../../components/Layout/TransactionItem'
+const { Sider } = Layout
 
-const { Content } = Layout
-
-interface TransactionsPageProps {
-  noLeidas?: number
+interface SidebarProps {
+  notificacionesNoLeidas?: number
 }
 
-interface Category {
-  title: string
-  icon: string
-  type: string
-}
+const NAV_ITEMS = [
+  { key: '/dashboard',       icon: <DashboardOutlined />, label: 'Dashboard' },
+  { key: '/transacciones',   icon: <SwapOutlined />,      label: 'Transacciones' },
+  { key: '/analisis',        icon: <BulbOutlined />,      label: 'Análisis IA' },
+  { key: '/perfil',          icon: <UserOutlined />,      label: 'Perfil' },
+  { key: '/notificaciones',  icon: <BellOutlined />,      label: 'Notificaciones' },
+]
 
-interface Transaction {
-  id?: number
-  title: string
-  category: string
-  date: string
-  amount: number
-}
+export default function Sidebar({ notificacionesNoLeidas = 0 }: SidebarProps) {
+  const navigate  = useNavigate()
+  const location  = useLocation()
 
-export default function TransactionsPage({
-  noLeidas = 0,
-}: TransactionsPageProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [isCategoryModalOpen, setIsCategoryModalOpen] =
-    useState(false)
-
-  const [activeCategory, setActiveCategory] =
-    useState('Todas')
-
-  const [categories, setCategories] = useState<Category[]>([])
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-
-  const [isMobile, setIsMobile] = useState(false)
-  const [isTablet, setIsTablet] = useState(false)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 640)
-      setIsTablet(window.innerWidth < 1024)
-    }
-
-    handleResize()
-    window.addEventListener('resize', handleResize)
-
-    return () =>
-      window.removeEventListener('resize', handleResize)
+    const onResize = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // 🔥 DATOS TEMPORALES (sin backend)
-  useEffect(() => {
-    setCategories([
-      {
-        title: 'Comida',
-        icon: 'wallet',
-        type: 'Gasto',
-      },
-      {
-        title: 'Salario',
-        icon: 'chart',
-        type: 'Ingreso',
-      },
-      {
-        title: 'Transporte',
-        icon: 'car',
-        type: 'Gasto',
-      },
-    ])
+  const menuItems = NAV_ITEMS.map(item => ({
+    key: item.key,
+    icon: item.icon,
+    label: item.key === '/notificaciones' ? (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 8 }}>
+        <span>{item.label}</span>
+        {notificacionesNoLeidas > 0 && (
+          <span style={{
+            backgroundColor: '#ef4444', color: '#fff',
+            fontSize: 11, fontWeight: 700,
+            borderRadius: '50%', minWidth: 20, height: 20,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '0 5px', lineHeight: 1,
+          }}>
+            {notificacionesNoLeidas > 99 ? '99+' : notificacionesNoLeidas}
+          </span>
+        )}
+      </div>
+    ) : item.label,
+  }))
 
-    setTransactions([
-      {
-        id: 1,
-        title: 'Pago Nómina',
-        category: 'Salario',
-        date: '31 mar 2026',
-        amount: 5000,
-      },
-      {
-        id: 2,
-        title: 'Uber',
-        category: 'Transporte',
-        date: '31 mar 2026',
-        amount: -120,
-      },
-    ])
-  }, [])
+  // Móvil: barra inferior fija
+  if (isMobile) {
+    return (
+      <nav style={{
+        position: 'fixed',
+        bottom: 0, left: 0, right: 0,
+        zIndex: 1000,
+        background: '#0f1117',
+        borderTop: '1px solid #1f2235',
+        display: 'flex',
+        alignItems: 'stretch',
+        height: 60,
+        boxShadow: '0 -4px 24px rgba(0,0,0,0.4)',
+      }}>
+        {NAV_ITEMS.map(item => {
+          const active = location.pathname === item.key
+          const isBell = item.key === '/notificaciones'
+          return (
+            <button
+              key={item.key}
+              onClick={() => navigate(item.key)}
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 3,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '6px 4px',
+                position: 'relative',
+                borderTop: active ? '2px solid #00d4ff' : '2px solid transparent',
+                transition: 'border-color 0.2s',
+              }}
+            >
+              <span style={{
+                fontSize: 18,
+                color: active ? '#00d4ff' : '#555',
+                position: 'relative',
+                transition: 'color 0.2s',
+              }}>
+                {item.icon}
+                {isBell && notificacionesNoLeidas > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: -5, right: -8,
+                    background: '#ef4444',
+                    color: '#fff',
+                    fontSize: 9,
+                    fontWeight: 700,
+                    borderRadius: '50%',
+                    minWidth: 16, height: 16,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 3px',
+                    lineHeight: 1,
+                  }}>
+                    {notificacionesNoLeidas > 9 ? '9+' : notificacionesNoLeidas}
+                  </span>
+                )}
+              </span>
+              <span style={{
+                fontSize: 10,
+                color: active ? '#00d4ff' : '#444',
+                fontWeight: active ? 600 : 400,
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%',
+                transition: 'color 0.2s',
+              }}>
+                {item.key === '/transacciones' ? 'Transac.' :
+                 item.key === '/notificaciones' ? 'Notif.' :
+                 item.key === '/analisis' ? 'Análisis' :
+                 item.label}
+              </span>
+            </button>
+          )
+        })}
+      </nav>
+    )
+  }
 
-  const filteredTransactions =
-    activeCategory === 'Todas'
-      ? transactions
-      : transactions.filter(
-          (t) => t.category === activeCategory
-        )
-
-  const contentPadding = isMobile
-    ? '16px'
-    : isTablet
-    ? '24px'
-    : '32px'
-
+  // Escritorio / tablet
   return (
-    <Layout
+    <Sider
+      width={220}
       style={{
+        background: '#0f1117',
         minHeight: '100vh',
-        background: '#0a0d14',
+        borderRight: '1px solid #1f2235',
+        position: 'sticky',
+        top: 0,
+        height: '100vh',
+        overflow: 'auto',
       }}
     >
-      <Sidebar
-        notificacionesNoLeidas={noLeidas}
+      <div style={{
+        padding: '24px 16px',
+        borderBottom: '1px solid #1f2235',
+      }}>
+        <h2 style={{ color: '#00d4ff', margin: 0, fontSize: 22, fontWeight: 'bold' }}>
+          SaveSmart
+        </h2>
+        <p style={{ color: '#666', margin: 0, fontSize: 12 }}>
+          Tu futuro financiero
+        </p>
+      </div>
+
+      <Menu
+        mode="inline"
+        selectedKeys={[location.pathname]}
+        onClick={({ key }) => navigate(key)}
+        items={menuItems}
+        style={{ background: '#0f1117', border: 'none', marginTop: 16 }}
+        theme="dark"
       />
-
-      <Layout style={{ background: '#0a0d14' }}>
-        <Content
-          style={{
-            padding: contentPadding,
-            background: '#0a0d14',
-          }}
-        >
-          {/* HEADER */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-                Transacciones
-              </h1>
-              <p className="text-gray-400">
-                Gestiona tus ingresos y gastos
-              </p>
-            </div>
-
-            <Button
-              onClick={() => setIsOpen(true)}
-            >
-              + Agregar Transacción
-            </Button>
-          </div>
-
-          {/* CATEGORÍAS */}
-          <div className="mb-10">
-            <h3 className="text-white text-2xl font-semibold mb-6">
-              Categorías
-            </h3>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              <div
-                onClick={() =>
-                  setActiveCategory('Todas')
-                }
-              >
-                <CategoryCard
-                  icon="chart"
-                  title="Todas"
-                  type="General"
-                />
-              </div>
-
-              {categories.map((cat, index) => (
-                <div
-                  key={index}
-                  onClick={() =>
-                    setActiveCategory(cat.title)
-                  }
-                >
-                  <CategoryCard
-                    icon={cat.icon}
-                    title={cat.title}
-                    type={cat.type}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* HISTORIAL */}
-          <div>
-            <h3 className="text-white text-2xl font-semibold mb-4">
-              Historial de Transacciones
-            </h3>
-
-            <div className="space-y-3">
-              {filteredTransactions.map(
-                (t, index) => (
-                  <TransactionItem
-                    key={t.id || index}
-                    title={t.title}
-                    category={t.category}
-                    amount={t.amount}
-                    date={t.date}
-                  />
-                )
-              )}
-            </div>
-          </div>
-        </Content>
-      </Layout>
-
-      {/* 🔥 desactivado temporalmente */}
-      {/*
-      <TransactionModal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        onSave={() => {}}
-      />
-      */}
-    </Layout>
+    </Sider>
   )
 }

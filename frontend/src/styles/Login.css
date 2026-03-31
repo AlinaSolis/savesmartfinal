@@ -1,0 +1,332 @@
+/* ===== RESET ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+/* ===== CONTENEDOR ===== */
+.login-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ===== LADO IZQUIERDO ===== */
+.login-left {
+  flex: 1;
+  padding: 80px 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #1e293b;
+  color: white;
+}
+
+.left-content {
+  max-width: 520px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 40px;
+}
+
+.logo-box {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+/* TITULO */
+.hero-title {
+  font-size: 48px;
+  font-weight: 800;
+  margin-bottom: 20px;
+}
+
+.gradient-text {
+  color: #22c55e;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: #cbd5e1;
+  margin-bottom: 40px;
+}
+
+/* INFO */
+.info-card {
+  margin-bottom: 20px;
+  padding: 20px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.info-card p {
+  font-size: 14px;
+  color: #e2e8f0;
+}
+
+/* ===== LADO DERECHO ===== */
+.login-right {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+/* FORM CARD */
+.form-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 30px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.form-card h2 {
+  margin-bottom: 5px;
+}
+
+.form-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 25px;
+}
+
+/* ===== INPUTS (ARREGLADO) ===== */
+.input-group {
+  position: relative;
+  margin-bottom: 18px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 12px 40px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 14px;
+
+  /* 🔥 FIX IMPORTANTE */
+  color: #0f172a; /* texto oscuro */
+}
+
+/* Placeholder visible */
+.input-group input::placeholder {
+  color: #94a3b8;
+}
+
+/* Autofill fix (Chrome) */
+.input-group input:-webkit-autofill {
+  -webkit-text-fill-color: #0f172a;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #2563eb;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+/* ICONOS */
+.input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+}
+
+/* LINKS */
+.forgot-password {
+  text-align: right;
+  margin-bottom: 15px;
+}
+
+.forgot-password a {
+  color: #2563eb;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+/* BOTÓN */
+.submit-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.submit-btn:hover {
+  background: #1d4ed8;
+}
+
+/* REGISTER */
+.register-text {
+  text-align: center;
+  font-size: 14px;
+  margin-top: 15px;
+}
+
+.register-text a {
+  color: #00ff8c;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  .login-left {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .login-right {
+    padding: 20px;
+  }
+
+  .form-card {
+    padding: 20px;
+  }
+
+  .hero-title {
+    font-size: 30px;
+  }
+}
+/* 🔥 MODAL */
+.success-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal-content {
+  background: #ffffff;
+  color: #1e293b;
+  padding: 30px 40px;
+  border-radius: 14px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content h3 {
+  margin-bottom: 10px;
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.modal-content p {
+  font-size: 14px;
+  color: #475569;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+/* ===== MODALES ===== */
+.success-modal,
+.error-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+/* CONTENIDO GENERAL */
+.modal-content {
+  background: #ffffff;
+  color: #1e293b;
+  padding: 30px 40px;
+  border-radius: 14px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease;
+  min-width: 280px;
+}
+
+/* ÉXITO */
+.modal-content.success h3 {
+  color: #22c55e;
+}
+
+/* ERROR */
+.modal-content.error h3 {
+  color: #ef4444;
+}
+
+.modal-content.error p {
+  color: #7f1d1d;
+}
+
+/* TEXTO */
+.modal-content p {
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+/* ANIMACIÓN */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

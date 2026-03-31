@@ -5,14 +5,26 @@ import NotificacionesPage from './pages/Notificaciones/NotificacionesPage'
 import { useNotificaciones } from './hooks/useNotificaciones'
 import HistorialPage from './pages/Historial/HistorialPage'
 import Transactions from './pages/Transacciones/TransactionsPage'
+import Login from './pages/Auth/Login'
+import Profile from './pages/Auth/Profile'
+import Register from './pages/Auth/Register'
 
 function AppContent() {
   const { noLeidas, recargar } = useNotificaciones()
 
   return (
-    <BrowserRouter>
+      <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/analisis" />} />
+
+        {/* Redirección inicial */}
+        <Route path="/" element={<Navigate to="/login" />} />
+
+        {/* Login */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/perfil" element={<Profile />} />
+
+        {/* Paginas */}
         <Route path="/analisis" element={
           <AnalisisPage noLeidas={noLeidas} recargar={recargar} />
         } />
@@ -23,8 +35,10 @@ function AppContent() {
           <HistorialPage noLeidas={noLeidas} recargar={recargar} />
         } />
         <Route path="/transacciones" element={<Transactions />} />
+
       </Routes>
     </BrowserRouter>
+    
   )
 }
 
