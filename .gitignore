@@ -1,0 +1,20 @@
+# Laravel
+analysis-service/vendor/
+analysis-service/.env
+analysis-service/storage/logs/*
+analysis-service/bootstrap/cache/*
+
+notification-service/vendor/
+notification-service/.env
+notification-service/storage/logs/*
+notification-service/bootstrap/cache/*
+
+# React
+frontend/node_modules/
+frontend/.env
+frontend/.env.production
+frontend/dist/
+
+# Sistema
+.DS_Store
+Thumbs.db
