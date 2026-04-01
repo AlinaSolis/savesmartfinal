@@ -6,6 +6,7 @@ import {
   BulbOutlined,
   UserOutlined,
   BellOutlined,
+  LogoutOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 
@@ -21,6 +22,8 @@ const NAV_ITEMS = [
   { key: '/analisis',        icon: <BulbOutlined />,      label: 'Análisis IA' },
   { key: '/perfil',          icon: <UserOutlined />,      label: 'Perfil' },
   { key: '/notificaciones',  icon: <BellOutlined />,      label: 'Notificaciones' },
+  { key: '/cerrar-sesion',   icon: <LogoutOutlined />,    label: 'Cerrar Sesión' },
+
 ]
 
 export default function Sidebar({ notificacionesNoLeidas = 0 }: SidebarProps) {

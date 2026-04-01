@@ -6,7 +6,7 @@ import { useNotificaciones } from './hooks/useNotificaciones'
 import HistorialPage from './pages/Historial/HistorialPage'
 import Transactions from './pages/Transacciones/TransactionsPage'
 import Login from './pages/Auth/Login'
-import Profile from './pages/Auth/Profile'
+import Profile from './pages/Profile/Profile'
 import Register from './pages/Auth/Register'
 
 function AppContent() {
