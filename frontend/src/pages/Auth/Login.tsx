@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, TrendingUp } from "lucide-react";
-import api from "../../services/authService";// IMPORTANTE: Asegúrate de tener este archivo
+import { login } from "../../services/authService";// IMPORTANTE: Asegúrate de tener este archivo
 import "../../styles/Login.css";
  
 type LoginFormData = {
@@ -28,12 +28,9 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await api.post("/signin", {
-        email: formData.email,
-        password: formData.password,
-      });
+      const response = await login(formData.email, formData.password);
 
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      localStorage.setItem("user", JSON.stringify(response.user));
 
       // ✅ ÉXITO
       setShowSuccess(true);

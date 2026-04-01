@@ -8,7 +8,7 @@ import {
   User,
   TrendingUp,
 } from "lucide-react";
-import api from "../../services/authService";
+import { register } from "../../services/authService";
 import "../../styles/Register.css";
 
 type RegisterFormData = {
@@ -65,13 +65,13 @@ const Register: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await api.post("/signup", {
-        fullName: formData.name,
-        email: formData.email,
-        password: formData.password,
-      });
+      const response = await register(
+        formData.name,
+        formData.email,
+        formData.password
+      );
 
-      console.log("Respuesta:", response.data);
+      console.log("Respuesta:", response);
 
       showToast("¡Cuenta creada exitosamente! 🚀", "success");
 
