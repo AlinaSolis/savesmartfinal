@@ -102,7 +102,7 @@ const Register: React.FC = () => {
       {/* IZQUIERDA */}
       <div className="register-left">
         <div className="left-content">
-          <div className="brand">
+          <div className="brand"> 
             <div className="logo-box">
               <TrendingUp size={28} />
             </div>

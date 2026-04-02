@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Content } from 'antd/es/layout/layout'
 import api from '../../services/authService'
-
+import '../../styles/Profile.css'
 // Define la interfaz
 interface ProfileProps {
   noLeidas: number;

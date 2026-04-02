@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, TrendingUp } from "lucide-react";
-import api from "../../services/authService";// IMPORTANTE: Asegúrate de tener este archivo
-import "../../styles/Login.css";
+import api from "../../services/authService";
+import "../../styles/Login.css"; 
  
 type LoginFormData = {
   email: string;
@@ -93,17 +93,24 @@ const Login: React.FC = () => {
       {/* ===== LADO DERECHO ===== */}
       <div className="login-right">
         <div className="form-card">
+         <center> 
           <h2>Bienvenido</h2>
           <p className="form-subtitle">
             Ingresa tus credenciales para continuar
           </p>
+          </center>
 
           <form onSubmit={handleLogin}>
+                <div className="label-container">
+                  <label className="custom-label">
+                    Correo electrónico <span className="required">*</span>
+                  </label>
+                </div> 
             <div className="input-group">
               <Mail className="input-icon" size={18} />
               <input
                 type="email"
-                placeholder="Correo Electrónico"
+                placeholder="Escribe tu correo electrónico"
                 required
                 value={formData.email}
                 onChange={(e) =>
@@ -111,12 +118,18 @@ const Login: React.FC = () => {
                 }
               />
             </div>
-
+                <div className="label-container">
+                  <label className="custom-label">
+                    Correo electrónico <span className="required">*</span>
+                  </label>
+                </div> 
+                
             <div className="input-group">
               <Lock className="input-icon" size={18} />
+              
               <input
                 type={showPassword ? "text" : "password"}
-                placeholder="Contraseña"
+                placeholder="Escribe tu contraseña"
                 required
                 value={formData.password}
                 onChange={(e) =>
@@ -143,7 +156,12 @@ const Login: React.FC = () => {
 
           <p className="register-text">
             ¿No tienes una cuenta?{" "}
-            <Link to="/register">Regístrate gratis</Link>
+            <div >
+                 <Link to="/register">Regístrate gratis</Link>
+            </div>
+           <div style={{ padding: '8px' }}></div>
+            <hr />
+            
           </p>
         </div>
       </div>
