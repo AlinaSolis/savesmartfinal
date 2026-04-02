@@ -1,181 +1,307 @@
-// src/components/Layout/Sidebar.tsx
-import { useEffect, useState } from 'react'
-import { Layout, Menu } from 'antd'
-import {
-  DashboardOutlined,
-  SwapOutlined,
-  BulbOutlined,
-  UserOutlined,
-  BellOutlined,
-} from '@ant-design/icons'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { renderIcon } from "../../utils/iconMap";
+import { showError, showSuccess } from "../../utils/sweetalert";
 
-const { Sider } = Layout
-
-interface SidebarProps {
-  notificacionesNoLeidas?: number
+interface TransactionModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (backendData: any, formData: any) => void;
 }
 
-const NAV_ITEMS = [
-  { key: '/dashboard',       icon: <DashboardOutlined />, label: 'Dashboard' },
-  { key: '/transacciones',   icon: <SwapOutlined />,      label: 'Transacciones' },
-  { key: '/analisis',        icon: <BulbOutlined />,      label: 'Análisis IA' },
-  { key: '/perfil',          icon: <UserOutlined />,      label: 'Perfil' },
-  { key: '/notificaciones',  icon: <BellOutlined />,      label: 'Notificaciones' },
-]
+interface Category {
+  id: number;
+  name: string;
+  icon: string;
+}
 
-export default function Sidebar({ notificacionesNoLeidas = 0 }: SidebarProps) {
-  const navigate  = useNavigate()
-  const location  = useLocation()
+export default function TransactionModal({ isOpen, onClose, onSave }: TransactionModalProps) {
+  const [type, setType] = useState<string>("expense");
+  const [amount, setAmount] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [category, setCategory] = useState<Category | null>(null);
+  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]); // Formato YYYY-MM-DD
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
 
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  // Estados para almacenar las categorías desde la BD
+  const [incomeCategories, setIncomeCategories] = useState<Category[]>([]);
+  const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
 
+  // Fetch a la API cuando el modal se abre
   useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
+    if (isOpen) {
+      fetch("http://127.0.0.1:8000/api/categories")
+        .then((response) => response.json())
+        .then((data) => {
+          // Filtramos y formateamos las categorías de ingreso
+          const income: Category[] = data
+            .filter((cat: any) => cat.type === "ingreso")
+            .map((cat: any) => ({
+              id: cat.id,
+              name: cat.name,
+              icon: cat.icon_identifier,
+            }));
 
-  const menuItems = NAV_ITEMS.map(item => ({
-    key: item.key,
-    icon: item.icon,
-    label: item.key === '/notificaciones' ? (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 8 }}>
-        <span>{item.label}</span>
-        {notificacionesNoLeidas > 0 && (
-          <span style={{
-            backgroundColor: '#ef4444', color: '#fff',
-            fontSize: 11, fontWeight: 700,
-            borderRadius: '50%', minWidth: 20, height: 20,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '0 5px', lineHeight: 1,
-          }}>
-            {notificacionesNoLeidas > 99 ? '99+' : notificacionesNoLeidas}
-          </span>
-        )}
-      </div>
-    ) : item.label,
-  }))
+          // Filtramos y formateamos las categorías de gasto
+          const expense: Category[] = data
+            .filter((cat: any) => cat.type === "gasto")
+            .map((cat: any) => ({
+              id: cat.id,
+              name: cat.name,
+              icon: cat.icon_identifier,
+            }));
 
-  // Móvil: barra inferior fija
-  if (isMobile) {
-    return (
-      <nav style={{
-        position: 'fixed',
-        bottom: 0, left: 0, right: 0,
-        zIndex: 1000,
-        background: '#0f1117',
-        borderTop: '1px solid #1f2235',
-        display: 'flex',
-        alignItems: 'stretch',
-        height: 60,
-        boxShadow: '0 -4px 24px rgba(0,0,0,0.4)',
-      }}>
-        {NAV_ITEMS.map(item => {
-          const active = location.pathname === item.key
-          const isBell = item.key === '/notificaciones'
-          return (
-            <button
-              key={item.key}
-              onClick={() => navigate(item.key)}
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 3,
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '6px 4px',
-                position: 'relative',
-                borderTop: active ? '2px solid #00d4ff' : '2px solid transparent',
-                transition: 'border-color 0.2s',
-              }}
-            >
-              <span style={{
-                fontSize: 18,
-                color: active ? '#00d4ff' : '#555',
-                position: 'relative',
-                transition: 'color 0.2s',
-              }}>
-                {item.icon}
-                {isBell && notificacionesNoLeidas > 0 && (
-                  <span style={{
-                    position: 'absolute',
-                    top: -5, right: -8,
-                    background: '#ef4444',
-                    color: '#fff',
-                    fontSize: 9,
-                    fontWeight: 700,
-                    borderRadius: '50%',
-                    minWidth: 16, height: 16,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '0 3px',
-                    lineHeight: 1,
-                  }}>
-                    {notificacionesNoLeidas > 9 ? '9+' : notificacionesNoLeidas}
-                  </span>
-                )}
-              </span>
-              <span style={{
-                fontSize: 10,
-                color: active ? '#00d4ff' : '#444',
-                fontWeight: active ? 600 : 400,
-                lineHeight: 1,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                maxWidth: '100%',
-                transition: 'color 0.2s',
-              }}>
-                {item.key === '/transacciones' ? 'Transac.' :
-                 item.key === '/notificaciones' ? 'Notif.' :
-                 item.key === '/analisis' ? 'Análisis' :
-                 item.label}
-              </span>
-            </button>
-          )
-        })}
-      </nav>
-    )
-  }
+          setIncomeCategories(income);
+          setExpenseCategories(expense);
+        })
+        .catch((error) => console.error("Error al cargar categorías:", error));
+    }
+  }, [isOpen]);
 
-  // Escritorio / tablet
+  const currentCategories = type === "income" ? incomeCategories : expenseCategories;
+
+  const renderCategoryIcon = (iconIdentifier: string) => {
+    // Evita mostrar emojis en la UI; se usan SVG consistentes
+    // Si iconIdentifier es null o no existe en el mapa, renderIcon devuelve el ícono por defecto.
+    return renderIcon(iconIdentifier, "w-5 h-5");
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!amount || !category || !date) return;
+
+    const newTransactionData = {
+      type,
+      category: category.name,
+      amount,
+      description,
+      date,
+    };
+
+    // Petición POST al backend para guardar la transacción
+    fetch("http://127.0.0.1:8000/api/transactions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify(newTransactionData),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Error al guardar la transacción");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        // Llamamos a onSave con los datos del backend y los del form para formatear
+        onSave(data, newTransactionData);
+
+        // Mostrar notificación de éxito
+        showSuccess("Transacción agregada correctamente");
+
+        // Limpiamos el formulario
+        setAmount("");
+        setDescription("");
+        setCategory(null);
+        setDate(new Date().toISOString().split('T')[0]);
+        setType("expense");
+        onClose();
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        // Mostrar notificación de error
+        showError("Error al guardar la transacción. Inténtalo de nuevo.");
+      });
+  };
+
+  const handleTypeChange = (newType: string) => {
+    setType(newType);
+    setCategory(null); // Reiniciar categoría al cambiar de tipo
+    setIsDropdownOpen(false);
+  };
+
   return (
-    <Sider
-      width={220}
-      style={{
-        background: '#0f1117',
-        minHeight: '100vh',
-        borderRight: '1px solid #1f2235',
-        position: 'sticky',
-        top: 0,
-        height: '100vh',
-        overflow: 'auto',
-      }}
-    >
-      <div style={{
-        padding: '24px 16px',
-        borderBottom: '1px solid #1f2235',
-      }}>
-        <h2 style={{ color: '#00d4ff', margin: 0, fontSize: 22, fontWeight: 'bold' }}>
-          SaveSmart
-        </h2>
-        <p style={{ color: '#666', margin: 0, fontSize: 12 }}>
-          Tu futuro financiero
-        </p>
-      </div>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
+          <motion.div
+            onClick={(e: { stopPropagation: () => any; }) => e.stopPropagation()}
+            initial={{ y: 50, opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 50, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="bg-[#0f1115] border border-gray-800 rounded-[2rem] w-full max-w-md p-8 shadow-2xl"
+          >
+            <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
+              Nueva Transacción
+            </h2>
 
-      <Menu
-        mode="inline"
-        selectedKeys={[location.pathname]}
-        onClick={({ key }) => navigate(key)}
-        items={menuItems}
-        style={{ background: '#0f1117', border: 'none', marginTop: 16 }}
-        theme="dark"
-      />
-    </Sider>
-  )
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+
+              {/* Tipo (Ingreso / Gasto) */}
+              <div>
+                <label className="text-sm font-medium text-white mb-2 block">Tipo</label>
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => handleTypeChange("income")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium transition-colors ${
+                      type === "income"
+                        ? "bg-[#10b981] text-black"
+                        : "bg-[#1c1f26] text-gray-400 hover:bg-[#252932]"
+                    }`}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                      <polyline points="16 7 22 7 22 13"></polyline>
+                    </svg>
+                    Ingreso
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTypeChange("expense")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium transition-colors ${
+                      type === "expense"
+                        ? "bg-[#ef4444] text-white"
+                        : "bg-[#1c1f26] text-gray-400 hover:bg-[#252932]"
+                    }`}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="22 17 13.5 8.5 8.5 13.5 2 7"></polyline>
+                      <polyline points="16 17 22 17 22 11"></polyline>
+                    </svg>
+                    Gasto
+                  </button>
+                </div>
+              </div>
+
+              {/* Categoría Dropdown */}
+              <div className="relative">
+                <label className="text-sm font-medium text-white mb-2 block">Categoría</label>
+                <button
+                  type="button"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="w-full bg-[#1c1f26] border border-gray-700 hover:border-gray-500 rounded-2xl px-4 py-3.5 text-left flex items-center justify-between text-white transition-colors"
+                >
+                  <span className={!category ? "text-gray-400" : ""}>
+                    {category ? (
+                      <span className="flex items-center gap-2">
+                         {category.name}
+                      </span>
+                    ) : (
+                      "Selecciona una categoría"
+                    )}
+                  </span>
+                  <svg className={`w-5 h-5 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {isDropdownOpen && (
+                  <div className="absolute top-[85px] left-0 w-full bg-[#1c1f26] border border-gray-700 rounded-xl overflow-hidden z-10 shadow-lg">
+                    <div className="px-4 py-3 border-b border-gray-600 text-gray-300 text-sm">
+                      Selecciona una categoría
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                      {currentCategories.length === 0 ? (
+                        <div className="px-4 py-3 text-gray-400 text-center">Cargando...</div>
+                      ) : (
+                        currentCategories.map((cat) => (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => {
+                              setCategory(cat);
+                              setIsDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${
+                              category?.id === cat.id ? "bg-cyan-500 text-white" : "text-gray-400 hover:bg-[#252932] hover:text-white"
+                            }`}
+                          >
+                            <span className="text-lg">
+                              {renderCategoryIcon(cat.icon)}
+                            </span>
+                            <span className={category?.id === cat.id ? "font-medium text-cyan-200" : "font-normal"}>
+                              {cat.name}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Monto */}
+              <div>
+                <label className="text-sm font-medium text-white mb-2 block">Monto</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full bg-[#1c1f26] border border-gray-700 rounded-2xl px-4 py-3.5 text-white placeholder-gray-500 focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all"
+                  required
+                />
+              </div>
+
+              {/* Descripción */}
+              <div>
+                <label className="text-sm font-medium text-white mb-2 block">Descripción (opcional)</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Almuerzo en el centro"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full bg-[#1c1f26] border border-gray-700 rounded-2xl px-4 py-3.5 text-white placeholder-gray-500 focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all"
+                />
+              </div>
+
+              {/* Fecha */}
+              <div>
+                <label className="text-sm font-medium text-white mb-2 block">Fecha</label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full bg-[#1c1f26] border border-gray-700 rounded-2xl px-4 py-3.5 text-white focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all [color-scheme:dark]"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Botones de Acción */}
+              <div className="flex gap-4 mt-4">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 px-6 py-4 rounded-2xl bg-[#1c1f26] hover:bg-[#252932] text-white font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-4 rounded-2xl font-semibold text-black bg-gradient-to-r from-cyan-400 to-purple-500 hover:opacity-90 transition-opacity"
+                >
+                  Agregar
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 }

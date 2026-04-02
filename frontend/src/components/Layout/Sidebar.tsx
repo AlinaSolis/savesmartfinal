@@ -167,6 +167,11 @@ export default function Sidebar({ notificacionesNoLeidas = 0 }: SidebarProps) {
         padding: '24px 16px',
         borderBottom: '1px solid #1f2235',
       }}>
+
+        <div className="hidden lg:flex lg:w-64 bg-[#0f1115] border-r border-gray-800 min-h-screen p-6 flex-col">
+        
+       </div> 
+
         <h2 style={{ color: '#00d4ff', margin: 0, fontSize: 22, fontWeight: 'bold' }}>
           SaveSmart
         </h2>
