@@ -8,6 +8,8 @@ import Transactions from './pages/Transacciones/TransactionsPage'
 import Login from './pages/Auth/Login'
 import Profile from './pages/Profile/Profile'
 import Register from './pages/Auth/Register'
+import { Dashboard } from './pages/Dashboard/Dashboard'
+
 
 function AppContent() {
   const { noLeidas, recargar } = useNotificaciones()
@@ -25,6 +27,7 @@ function AppContent() {
         <Route path="/perfil" element={<Profile />} />
 
         {/* Paginas */}
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/analisis" element={
           <AnalisisPage noLeidas={noLeidas} recargar={recargar} />
         } />
