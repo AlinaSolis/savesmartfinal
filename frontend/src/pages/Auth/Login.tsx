@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, TrendingUp } from "lucide-react";
-import api from "../../services/authService";
+import { authService } from "../../services/authService";
 import "../../styles/Login.css"; 
+
  
 type LoginFormData = {
   email: string;
@@ -24,37 +25,31 @@ const Login: React.FC = () => {
   });
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
+  e.preventDefault();
+  setIsLoading(true);
 
-    try {
-      const response = await api.post("/signin", {
-        email: formData.email,
-        password: formData.password,
-      });
+  try {
+    await authService.signIn({
+      email: formData.email,
+      password: formData.password,
+    });
 
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+    // ÉXITO
+    setShowSuccess(true);
+    setTimeout(() => {
+      navigate("/perfil");
+    }, 2000);
 
-      // ✅ ÉXITO
-      setShowSuccess(true);
-
-      setTimeout(() => {
-        navigate("/perfil");
-      }, 2000);
-
-    } catch (error: any) {
-      console.error(error);
-
-      // ❌ ERROR BONITO
-      setShowError(true);
-
-      setTimeout(() => {
-        setShowError(false);
-      }, 2000);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  } catch (error: any) {
+    console.error(error);
+    setShowError(true);
+    setTimeout(() => {
+      setShowError(false);
+    }, 2000);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const updateFormData = (field: keyof LoginFormData, value: string) => {
     setFormData((prev) => ({
@@ -98,6 +93,7 @@ const Login: React.FC = () => {
           <p className="form-subtitle">
             Ingresa tus credenciales para continuar
           </p>
+          
           </center>
 
           <form onSubmit={handleLogin}>
@@ -120,7 +116,7 @@ const Login: React.FC = () => {
             </div>
                 <div className="label-container">
                   <label className="custom-label">
-                    Correo electrónico <span className="required">*</span>
+                    Escribe tu contraseña <span className="required">*</span>
                   </label>
                 </div> 
                 
@@ -153,8 +149,9 @@ const Login: React.FC = () => {
               {isLoading ? "Ingresando..." : "Iniciar Sesión"}
             </button>
           </form>
+          
 
-          <p className="register-text">
+          <div className="login-text">
             ¿No tienes una cuenta?{" "}
             <div >
                  <Link to="/register">Regístrate gratis</Link>
@@ -162,7 +159,7 @@ const Login: React.FC = () => {
            <div style={{ padding: '8px' }}></div>
             <hr />
             
-          </p>
+          </div>
         </div>
       </div>
 

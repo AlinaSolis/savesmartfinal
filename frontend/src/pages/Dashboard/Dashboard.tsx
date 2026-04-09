@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
+import "../../styles/app.css";
 import axios from "axios";
 import {
   Button,
@@ -13,6 +14,9 @@ import {
   Tag,
   Typography,
   Tooltip,
+  Layout as AntLayout, // renombramos para evitar conflicto
+  theme,
+  message,
 } from "antd";
 import {
   ArrowDownOutlined,
@@ -23,7 +27,7 @@ import {
   PieChartOutlined,
   SafetyCertificateOutlined,
 } from "@ant-design/icons";
-import { Layout } from "../../layout/Layout";
+import Sidebar from "../../components/Layout/Sidebar"; // 👈 importamos el Sidebar igual que en NotificacionesPage
 
 // --- IMPORTACIÓN DE IMÁGENES ---
 import sieteDiasAhorrando from "../../assets/insignias/7_Dias_Ahorrando.png";
@@ -48,6 +52,8 @@ import viajeLogrado from "../../assets/insignias/Viaje_Logrado.png";
 import visionFinanciera from "../../assets/insignias/Vision_Financiera.png";
 
 const { Title, Text } = Typography;
+const { Content } = AntLayout;
+const USER_ID = 99; // mismo ID que en NotificacionesPage
 
 type Movimiento = {
   id: string;
@@ -173,12 +179,29 @@ export function Dashboard() {
   const [insignias, setInsignias] = useState<Insignia[]>(insigniasMock);
   const [statsBD, setStatsBD] = useState({ balance: 0, ingresos: 0, gastos: 0, ahorro: 0 });
   const [cargando, setCargando] = useState(true);
+  const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState(0); // 👈 para el Sidebar
 
-  // EFECTO PARA TRAER DATOS DEL BACKEND
+  // Obtener notificaciones no leídas (igual que en NotificacionesPage)
+  useEffect(() => {
+    const fetchNotificaciones = async () => {
+      try {
+        const response = await axios.get(`http://127.0.0.1:8000/api/notificaciones?usuario_id=${USER_ID}`);
+        const noLeidas = response.data.notificaciones?.filter((n: any) => !n.leida).length || 0;
+        setNotificacionesNoLeidas(noLeidas);
+      } catch (error) {
+        console.error("Error al cargar notificaciones:", error);
+        // Si falla, dejamos 0 para que el Sidebar no muestre nada extraño
+      }
+    };
+    fetchNotificaciones();
+    const intervalo = setInterval(fetchNotificaciones, 10000); // actualizar cada 10s
+    return () => clearInterval(intervalo);
+  }, []);
+
+  // EFECTO PARA TRAER DATOS DEL BACKEND (Dashboard)
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. Estadísticas y movimientos
         const dashRes = await axios.get("http://127.0.0.1:8000/api/dashboard");
         setMovimientos(dashRes.data.recent_transactions);
         
@@ -189,13 +212,9 @@ export function Dashboard() {
           ahorro: parseFloat(dashRes.data.stats.ahorro_mes) || 0
         });
 
-        // 2. Insignias desbloqueadas por el usuario
         const userBadgesRes = await axios.get("http://127.0.0.1:8000/api/user/badges");
-        
-        // Extraemos solo los nombres (títulos) de las insignias que sí ganó
         const unlockedTitles = userBadgesRes.data.map((b: { titulo: string }) => b.titulo);
 
-        // Mapeamos nuestro catálogo local y encendemos las que el backend nos diga
         const updatedInsignias = insigniasMock.map(ins => ({
           ...ins,
           desbloqueada: unlockedTitles.includes(ins.nombre),
@@ -203,9 +222,9 @@ export function Dashboard() {
         }));
 
         setInsignias(updatedInsignias);
-
       } catch (error) {
         console.error("Error al conectar con el backend:", error);
+        message.error("Error al cargar los datos del dashboard");
       } finally {
         setCargando(false);
       }
@@ -236,178 +255,184 @@ export function Dashboard() {
   const insigniasDestacadas = useMemo(() => insigniasDesbloqueadas.slice(0, 4), [insigniasDesbloqueadas]);
 
   if (cargando) {
-    return <Layout><div style={{ color: 'white', padding: 50, textAlign: 'center' }}>Cargando información...</div></Layout>;
+    return (
+      <AntLayout style={{ minHeight: "100vh", background: "#0f1117" }}>
+        <Sidebar notificacionesNoLeidas={notificacionesNoLeidas} />
+        <Content style={{ padding: "24px", background: "#0f1117" }}>
+          <div style={{ color: "white", padding: 50, textAlign: "center" }}>Cargando información...</div>
+        </Content>
+      </AntLayout>
+    );
   }
 
   return (
-    <Layout>
-      <div className="dashboard-grid">
-        <div className="dashboard-header">
-          <div>
-            <Title level={1} className="titulo-dashboard">Inicio</Title>
-            <Text className="texto-muted">
-              Controla tus gastos, registra ingresos y avanza en tus metas.
-            </Text>
-          </div>
-          <Tag color={resumen.balance >= 0 ? "cyan" : "red"} className="etiqueta-pill etiqueta-balance">
-            {resumen.balance >= 0 ? "Balance estable" : "Balance en riesgo"}
-          </Tag>
-        </div>
-
-        <Row gutter={[16, 16]} className="fila-superior">
-          <Col xs={24} lg={14}>
-            <Card className="glass hero-fintech hero-alto">
-              <div className="orbe orbe-1" />
-              <div className="orbe orbe-2" />
-              <div className="hero-contenido">
-                <Title level={3} className="hero-titulo">¡Bienvenido de vuelta!</Title>
-                <Text className="texto-muted hero-texto">
-                  Hoy vas bien: revisa tus movimientos y ajusta tu presupuesto si es necesario.
-                </Text>
-                <Space wrap style={{ marginTop: 14 }}>
-                  <Button size="middle" className="btn-fintech btn-primario glow-primario" icon={<ArrowDownOutlined />}>
-                    Registrar gasto
-                  </Button>
-                  <Button size="middle" className="btn-fintech btn-secundario glow-secundario" icon={<ArrowUpOutlined />}>
-                    Registrar ingreso
-                  </Button>
-                  <Button size="middle" className="btn-fintech btn-neutro" icon={<TrophyOutlined />}>
-                    Ver metas
-                  </Button>
-                </Space>
-                <Divider className="divider-suave" />
-                <Row gutter={[12, 12]}>
-                  <Col xs={24} md={12}>
-                    <Card className="glass subcard tarjeta-compacta panel-resumen">
-                      <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                        <Space>
-                          <SafetyCertificateOutlined style={{ color: "#10b981" }} />
-                          <Text className="panel-titulo">Meta de ahorro</Text>
-                        </Space>
-                        <Text className="texto-muted">{dinero(resumen.metaAhorro)}</Text>
-                      </Space>
-                      <div style={{ marginTop: 10 }}>
-                        <Progress percent={Math.round(resumen.progresoAhorro)} showInfo={false} strokeColor="#10b981" trailColor="rgba(255,255,255,0.08)" />
-                        <div className="meta-linea">
-                          <span>Actual: {dinero(resumen.ahorro)}</span>
-                          <span>{Math.round(resumen.progresoAhorro)}%</span>
-                        </div>
-                      </div>
-                    </Card>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <Card className="glass subcard tarjeta-compacta panel-resumen">
-                      <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                        <Space>
-                          <PieChartOutlined style={{ color: "#f59e0b" }} />
-                          <Text className="panel-titulo">Presupuesto</Text>
-                        </Space>
-                        <Text className="texto-muted">{dinero(resumen.presupuesto)}</Text>
-                      </Space>
-                      <div style={{ marginTop: 10 }}>
-                        <Progress percent={Math.round(resumen.usoPresupuesto)} showInfo={false} strokeColor="#f59e0b" trailColor="rgba(255,255,255,0.08)" />
-                        <div className="meta-linea">
-                          <span>Gasto: {dinero(resumen.gastos)}</span>
-                          <span>{Math.round(resumen.usoPresupuesto)}%</span>
-                        </div>
-                      </div>
-                    </Card>
-                  </Col>
-                </Row>
-              </div>
-            </Card>
-          </Col>
-
-          <Col xs={24} lg={10}>
-            <div className="kpi-grid kpi-alto">
-              <KpiCard titulo="Gastos del mes" valor={dinero(resumen.gastos)} glow="primario" icono={<WalletOutlined style={{ color: "#ef4444", fontSize: 22 }} />} />
-              <KpiCard titulo="Ahorro del mes" valor={dinero(resumen.ahorro)} glow="acento" icono={<SafetyCertificateOutlined style={{ color: "#10b981", fontSize: 22 }} />} />
-              <KpiCard titulo="Ingresos del mes" valor={dinero(resumen.ingresos)} glow="secundario" icono={<ArrowUpOutlined style={{ color: "#10b981", fontSize: 22 }} />} />
-              <KpiCard titulo="Balance" valor={dinero(resumen.balance)} icono={<WalletOutlined style={{ color: "#00d4ff", fontSize: 22 }} />} />
-            </div>
-          </Col>
-        </Row>
-
-        <Row gutter={[16, 16]} style={{ marginTop: 2 }}>
-          <Col xs={24} lg={16}>
-            <Card
-              className="glass"
-              title={<Space><HistoryOutlined /><span style={{ color: "#f5f5f5" }}>Últimos movimientos</span></Space>}
-              extra={<Text className="texto-muted">Últimos {movimientos.length}</Text>}
-              classNames={{ body: "card-body-sin-padding" }}
-            >
-              <div className="lista-scroll">
-                <List
-                  dataSource={movimientos}
-                  locale={{ emptyText: <span className="texto-muted">Aún no hay movimientos registrados.</span> }}
-                  renderItem={(m) => {
-                    const esGasto = m.tipo === "gasto";
-                    return (
-                      <List.Item className="movimiento-list-item">
-                        <div className="item-movimiento">
-                          <Tag color={esGasto ? "red" : "green"} className="etiqueta-pill etiqueta-movimiento">
-                            {esGasto ? "Gasto" : "Ingreso"}
-                          </Tag>
-                          <div className="mov-info">
-                            <div className="mov-titulo">{m.descripcion}</div>
-                            <div className="mov-meta">{m.categoria} • {formatearFecha(m.fecha)}</div>
-                          </div>
-                          <div className={`mov-monto ${esGasto ? "monto-negativo" : "monto-positivo"}`}>
-                            {esGasto ? "-" : "+"}{dinero(m.monto)}
-                          </div>
-                        </div>
-                      </List.Item>
-                    );
-                  }}
-                />
-              </div>
-            </Card>
-          </Col>
-
-          <Col xs={24} lg={8}>
-            <Card
-              className="glass insignias-dashboard-card"
-              title={<Space><TrophyOutlined /><span style={{ color: "#f5f5f5" }}>Insignias</span></Space>}
-              extra={<Button type="link" onClick={() => setModalInsignias(true)} style={{ color: "#00d4ff", paddingInline: 0 }}>Ver todas</Button>}
-            >
-              <div className="insignias-grid-dashboard">
-                {insigniasDestacadas.map((i) => (
-                  <InsigniaItem key={i.id} item={i} />
-                ))}
-              </div>
-              <Divider className="divider-suave" />
-              <Text className="texto-muted texto-insignias-resumen">
-                Has desbloqueado {insigniasDesbloqueadas.length} de {insignias.length} insignias.
+    <AntLayout style={{ minHeight: "100vh", background: "#0f1117" }}>
+      {/* Sidebar exactamente igual que en NotificacionesPage */}
+      <Sidebar notificacionesNoLeidas={notificacionesNoLeidas} />
+      
+      <Content style={{ padding: "24px", background: "#0f1117" }}>
+        <div className="dashboard-grid">
+          <div className="dashboard-header">
+            <div>
+              <Title level={1} className="titulo-dashboard">Inicio</Title>
+              <Text className="texto-muted">
+                Controla tus gastos, registra ingresos y avanza en tus metas.
               </Text>
-            </Card>
-          </Col>
-        </Row>
-
-        <Modal
-          title={<span style={{ color: "#f5f5f5" }}>Todas tus insignias</span>}
-          open={modalInsignias}
-          onCancel={() => setModalInsignias(false)}
-          footer={null}
-          width={820}
-          className="glass" 
-          styles={{
-            header: { 
-              background: "transparent", 
-              borderBottom: "1px solid rgba(255,255,255,0.06)" 
-            },
-            body: { 
-              paddingTop: 18, 
-              paddingBottom: 12 
-            },
-          }}
-        >
-          <div className="insignias-grid-dashboard">
-            {insignias.map((i) => (
-              <InsigniaItem key={i.id} item={i} />
-            ))}
+            </div>
+            <Tag color={resumen.balance >= 0 ? "cyan" : "red"} className="etiqueta-pill etiqueta-balance">
+              {resumen.balance >= 0 ? "Balance estable" : "Balance en riesgo"}
+            </Tag>
           </div>
-        </Modal>
-      </div>
-    </Layout>
+
+          <Row gutter={[16, 16]} className="fila-superior">
+            <Col xs={24} lg={14}>
+              <Card className="glass hero-fintech hero-alto">
+                <div className="orbe orbe-1" />
+                <div className="orbe orbe-2" />
+                <div className="hero-contenido">
+                  <Title level={3} className="hero-titulo">¡Bienvenido de vuelta!</Title>
+                  <Text className="texto-muted hero-texto">
+                    Hoy vas bien: revisa tus movimientos y ajusta tu presupuesto si es necesario.
+                  </Text>
+                  <Space wrap style={{ marginTop: 14 }}>
+                    <Button size="middle" className="btn-fintech btn-primario glow-primario" icon={<ArrowDownOutlined />}>
+                      Registrar gasto
+                    </Button>
+                    <Button size="middle" className="btn-fintech btn-secundario glow-secundario" icon={<ArrowUpOutlined />}>
+                      Registrar ingreso
+                    </Button>
+                    <Button size="middle" className="btn-fintech btn-neutro" icon={<TrophyOutlined />}>
+                      Ver metas
+                    </Button>
+                  </Space>
+                  <Divider className="divider-suave" />
+                  <Row gutter={[12, 12]}>
+                    <Col xs={24} md={12}>
+                      <Card className="glass subcard tarjeta-compacta panel-resumen">
+                        <Space style={{ width: "100%", justifyContent: "space-between" }}>
+                          <Space>
+                            <SafetyCertificateOutlined style={{ color: "#10b981" }} />
+                            <Text className="panel-titulo">Meta de ahorro</Text>
+                          </Space>
+                          <Text className="texto-muted">{dinero(resumen.metaAhorro)}</Text>
+                        </Space>
+                        <div style={{ marginTop: 10 }}>
+                          <Progress percent={Math.round(resumen.progresoAhorro)} showInfo={false} strokeColor="#10b981" trailColor="rgba(255,255,255,0.08)" />
+                          <div className="meta-linea">
+                            <span>Actual: {dinero(resumen.ahorro)}</span>
+                            <span>{Math.round(resumen.progresoAhorro)}%</span>
+                          </div>
+                        </div>
+                      </Card>
+                    </Col>
+                    <Col xs={24} md={12}>
+                      <Card className="glass subcard tarjeta-compacta panel-resumen">
+                        <Space style={{ width: "100%", justifyContent: "space-between" }}>
+                          <Space>
+                            <PieChartOutlined style={{ color: "#f59e0b" }} />
+                            <Text className="panel-titulo">Presupuesto</Text>
+                          </Space>
+                          <Text className="texto-muted">{dinero(resumen.presupuesto)}</Text>
+                        </Space>
+                        <div style={{ marginTop: 10 }}>
+                          <Progress percent={Math.round(resumen.usoPresupuesto)} showInfo={false} strokeColor="#f59e0b" trailColor="rgba(255,255,255,0.08)" />
+                          <div className="meta-linea">
+                            <span>Gasto: {dinero(resumen.gastos)}</span>
+                            <span>{Math.round(resumen.usoPresupuesto)}%</span>
+                          </div>
+                        </div>
+                      </Card>
+                    </Col>
+                  </Row>
+                </div>
+              </Card>
+            </Col>
+
+            <Col xs={24} lg={10}>
+              <div className="kpi-grid kpi-alto">
+                <KpiCard titulo="Gastos del mes" valor={dinero(resumen.gastos)} glow="primario" icono={<WalletOutlined style={{ color: "#ef4444", fontSize: 22 }} />} />
+                <KpiCard titulo="Ahorro del mes" valor={dinero(resumen.ahorro)} glow="acento" icono={<SafetyCertificateOutlined style={{ color: "#10b981", fontSize: 22 }} />} />
+                <KpiCard titulo="Ingresos del mes" valor={dinero(resumen.ingresos)} glow="secundario" icono={<ArrowUpOutlined style={{ color: "#10b981", fontSize: 22 }} />} />
+                <KpiCard titulo="Balance" valor={dinero(resumen.balance)} icono={<WalletOutlined style={{ color: "#00d4ff", fontSize: 22 }} />} />
+              </div>
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]} style={{ marginTop: 2 }}>
+            <Col xs={24} lg={16}>
+              <Card
+                className="glass"
+                title={<Space><HistoryOutlined /><span style={{ color: "#f5f5f5" }}>Últimos movimientos</span></Space>}
+                extra={<Text className="texto-muted">Últimos {movimientos.length}</Text>}
+                classNames={{ body: "card-body-sin-padding" }}
+              >
+                <div className="lista-scroll">
+                  <List
+                    dataSource={movimientos}
+                    locale={{ emptyText: <span className="texto-muted">Aún no hay movimientos registrados.</span> }}
+                    renderItem={(m) => {
+                      const esGasto = m.tipo === "gasto";
+                      return (
+                        <List.Item className="movimiento-list-item">
+                          <div className="item-movimiento">
+                            <Tag color={esGasto ? "red" : "green"} className="etiqueta-pill etiqueta-movimiento">
+                              {esGasto ? "Gasto" : "Ingreso"}
+                            </Tag>
+                            <div className="mov-info">
+                              <div className="mov-titulo">{m.descripcion}</div>
+                              <div className="mov-meta">{m.categoria} • {formatearFecha(m.fecha)}</div>
+                            </div>
+                            <div className={`mov-monto ${esGasto ? "monto-negativo" : "monto-positivo"}`}>
+                              {esGasto ? "-" : "+"}{dinero(m.monto)}
+                            </div>
+                          </div>
+                        </List.Item>
+                      );
+                    }}
+                  />
+                </div>
+              </Card>
+            </Col>
+
+            <Col xs={24} lg={8}>
+              <Card
+                className="glass insignias-dashboard-card"
+                title={<Space><TrophyOutlined /><span style={{ color: "#f5f5f5" }}>Insignias</span></Space>}
+                extra={<Button type="link" onClick={() => setModalInsignias(true)} style={{ color: "#00d4ff", paddingInline: 0 }}>Ver todas</Button>}
+              >
+                <div className="insignias-grid-dashboard">
+                  {insigniasDestacadas.map((i) => (
+                    <InsigniaItem key={i.id} item={i} />
+                  ))}
+                </div>
+                <Divider className="divider-suave" />
+                <Text className="texto-muted texto-insignias-resumen">
+                  Has desbloqueado {insigniasDesbloqueadas.length} de {insignias.length} insignias.
+                </Text>
+              </Card>
+            </Col>
+          </Row>
+
+          <Modal
+            title={<span style={{ color: "#f5f5f5" }}>Todas tus insignias</span>}
+            open={modalInsignias}
+            onCancel={() => setModalInsignias(false)}
+            footer={null}
+            width={820}
+            className="glass" 
+            styles={{
+              header: { background: "transparent", borderBottom: "1px solid rgba(255,255,255,0.06)" },
+              body: { paddingTop: 18, paddingBottom: 12 },
+            }}
+          >
+            <div className="insignias-grid-dashboard">
+              {insignias.map((i) => (
+                <InsigniaItem key={i.id} item={i} />
+              ))}
+            </div>
+          </Modal>
+        </div>
+      </Content>
+    </AntLayout>
   );
 }

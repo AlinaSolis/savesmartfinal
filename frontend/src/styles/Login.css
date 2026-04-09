@@ -25,7 +25,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #1e293b;
+   background: radial-gradient(circle at 20% 30%, #1a1a2e, #0f0f14 60%);
   color: white;
 }
 
@@ -88,6 +88,7 @@ body {
   justify-content: center;
   align-items: center;
   padding: 40px;
+  background: radial-gradient(circle at 70% 30%, #1c1c2e, #0f0f14 60%);
 }
 
 /* FORM CARD */
@@ -146,7 +147,7 @@ body {
   background: #f8fafc;
   font-size: 14px;
 
-  /* 🔥 FIX IMPORTANTE */
+  /* FIX IMPORTANTE */
   color: #0f172a; /* texto oscuro */
 }
 
@@ -251,7 +252,7 @@ body {
     font-size: 30px;
   }
 }
-/* 🔥 MODAL */
+/* MODAL */
 .success-modal {
   position: fixed;
   top: 0;
@@ -310,7 +311,9 @@ body {
   justify-content: center;
   z-index: 999;
 }
-
+.login-right {
+  background: linear-gradient(135deg, #0f0f14, #1a2236);
+}
 /* CONTENIDO GENERAL */
 .modal-content {
   background: #ffffff;
@@ -342,6 +345,18 @@ body {
   font-size: 14px;
   margin-top: 5px;
 }
+/* Elimina el ojito nativo del navegador en inputs de tipo password */
+.input-group input[type="password"]::-ms-reveal,
+.input-group input[type="password"]::-ms-clear {
+  display: none;
+}
+
+/* Para Chrome/Edge */
+.input-group input::-webkit-credentials-auto-fill-button,
+.input-group input::-webkit-textfield-decoration-container {
+  display: none !important;
+}
+
 @media (max-width: 768px) {
   .custom-label {
     font-size: 12px;

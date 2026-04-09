@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Card, Col, Progress, Row, Typography } from "antd";
-import { Layout } from "../../layout/Layout";
+import { Card, Col, Progress, Row, Typography, Layout as AntLayout } from "antd";
+import Sidebar from "../../components/Layout/Sidebar";
+import { badgesService } from '../../services/badgesService'
 
 // --- IMPORTACIÓN DE IMÁGENES ---
 import sieteDiasAhorrando from "../../assets/insignias/7_Dias_Ahorrando.png";
@@ -26,6 +27,8 @@ import viajeLogrado from "../../assets/insignias/Viaje_Logrado.png";
 import visionFinanciera from "../../assets/insignias/Vision_Financiera.png";
 
 const { Title, Text } = Typography;
+const { Content } = AntLayout;
+const USER_ID = 99; // Mismo ID que en NotificacionesPage
 
 type Insignia = {
   id: string;
@@ -104,7 +107,25 @@ export function Insignias() {
   // Estado con la lista dinámica conectada a la BD
   const [insigniasList, setInsigniasList] = useState<Insignia[]>(insigniasMock);
   const [cargando, setCargando] = useState(true);
+  const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState(0);
 
+  // Obtener notificaciones no leídas (igual que en NotificacionesPage)
+  useEffect(() => {
+    const fetchNotificaciones = async () => {
+      try {
+        const response = await axios.get(`http://127.0.0.1:8000/api/notificaciones?usuario_id=${USER_ID}`);
+        const noLeidas = response.data.notificaciones?.filter((n: any) => !n.leida).length || 0;
+        setNotificacionesNoLeidas(noLeidas);
+      } catch (error) {
+        console.error("Error al cargar notificaciones:", error);
+      }
+    };
+    fetchNotificaciones();
+    const intervalo = setInterval(fetchNotificaciones, 10000);
+    return () => clearInterval(intervalo);
+  }, []);
+
+  // Obtener insignias desde el backend
   useEffect(() => {
     const fetchBadges = async () => {
       try {
@@ -132,44 +153,54 @@ export function Insignias() {
   }, []);
 
   if (cargando) {
-    return <Layout><div style={{ color: 'white', padding: 50, textAlign: 'center' }}>Cargando tu vitrina de logros...</div></Layout>;
+    return (
+      <AntLayout style={{ minHeight: '100vh', background: '#0f1117' }}>
+        <Sidebar notificacionesNoLeidas={notificacionesNoLeidas} />
+        <Content style={{ padding: '24px', background: '#0f1117' }}>
+          <div style={{ color: 'white', padding: 50, textAlign: 'center' }}>Cargando tu vitrina de logros...</div>
+        </Content>
+      </AntLayout>
+    );
   }
 
   return (
-    <Layout>
-      <div className="dashboard-grid">
-        <div>
-          <Title level={1} className="titulo-dashboard">
-            Mis insignias
-          </Title>
-          <Text className="texto-muted">
-            Visualiza tus logros y progreso dentro de SaveSmart.
-          </Text>
+    <AntLayout style={{ minHeight: '100vh', background: '#0f1117' }}>
+      <Sidebar notificacionesNoLeidas={notificacionesNoLeidas} />
+      <Content style={{ padding: '24px', background: '#0f1117' }}>
+        <div className="dashboard-grid">
+          <div>
+            <Title level={1} className="titulo-dashboard">
+              Mis insignias
+            </Title>
+            <Text className="texto-muted">
+              Visualiza tus logros y progreso dentro de SaveSmart.
+            </Text>
+          </div>
+
+          {categorias.map((categoria) => {
+            // Filtramos usando nuestro nuevo estado dinámico
+            const items = insigniasList.filter((insignia) => insignia.categoria === categoria);
+            
+            if (items.length === 0) return null;
+
+            return (
+              <Card
+                key={categoria}
+                className="glass"
+                title={<span style={{ color: "#f5f5f5" }}>{categoria}</span>}
+              >
+                <Row gutter={[16, 16]}>
+                  {items.map((item) => (
+                    <Col key={item.id} xs={24} sm={12} lg={8} xl={6}>
+                      <InsigniaCard item={item} />
+                    </Col>
+                  ))}
+                </Row>
+              </Card>
+            );
+          })}
         </div>
-
-        {categorias.map((categoria) => {
-          // Filtramos usando nuestro nuevo estado dinámico
-          const items = insigniasList.filter((insignia) => insignia.categoria === categoria);
-          
-          if (items.length === 0) return null;
-
-          return (
-            <Card
-              key={categoria}
-              className="glass"
-              title={<span style={{ color: "#f5f5f5" }}>{categoria}</span>}
-            >
-              <Row gutter={[16, 16]}>
-                {items.map((item) => (
-                  <Col key={item.id} xs={24} sm={12} lg={8} xl={6}>
-                    <InsigniaCard item={item} />
-                  </Col>
-                ))}
-              </Row>
-            </Card>
-          );
-        })}
-      </div>
-    </Layout>
+      </Content>
+    </AntLayout>
   );
 }

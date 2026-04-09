@@ -4,8 +4,8 @@ import Avatar from 'antd/es/avatar/Avatar'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Content } from 'antd/es/layout/layout'
-import api from '../../services/authService'
 import '../../styles/Profile.css'
+import api from '../../services/apiAuth'
 // Define la interfaz
 interface ProfileProps {
   noLeidas: number;
@@ -85,7 +85,7 @@ function Profile({ noLeidas }: ProfileProps) {
     alignItems: 'stretch'
   }}>
 
-    {/* 🔵 CARD IZQUIERDA */}
+    {/* CARD IZQUIERDA */}
     <div style={{
       width: 260,
       background: 'linear-gradient(145deg, #1b263b, #111827)',
