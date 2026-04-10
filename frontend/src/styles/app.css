@@ -27,7 +27,7 @@ body {
   margin: 0;
   background: var(--bg-main);
   color: var(--text-main);
-  overflow: hidden;
+  overflow: auto;
   font-family:
     Inter,
     ui-sans-serif,
@@ -445,6 +445,11 @@ body {
   font-weight: 900;
   letter-spacing: -0.02em;
   line-height: 1.05;
+  color: #f7f8f7 !important;
+}
+
+.texto-muted {
+  color: #a1a1aa !important;
 }
 
 .subcard {
@@ -642,71 +647,156 @@ body {
   overflow: hidden;
 }
 
+/* ── Grid mini en card del dashboard (2 columnas, compacto) ── */
 .insignias-grid-dashboard {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
 }
 
-.insignia-dashboard {
+/* ── Grid grande en modal (5 columnas, responsive) ── */
+.insignias-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+
+/* ── Tarjeta de insignia (usada en ambos grids) ── */
+.insignia-card-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 14px 8px 12px;
   border-radius: 16px;
-  border: 1px solid var(--border-soft);
-  background: rgba(255, 255, 255, 0.02);
-  min-height: 118px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.025);
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.insignia-card-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 212, 255, 0.25);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* Imagen en un círculo */
+.insignia-card-img-wrap {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px;
-  transition:
-    transform 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    opacity 160ms ease;
-}
-
-.insignia-dashboard:hover {
-  transform: translateY(-1px);
-  border-color: rgba(255, 255, 255, 0.14);
-}
-
-.insignia-dashboard-icono {
-  width: 82px;
-  height: 82px;
-  border-radius: 20px;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  flex-shrink: 0;
 }
 
-.insignia-dashboard-img {
-  object-fit: contain;
+.insignia-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
 }
 
-.img-normal-dashboard {
-  width: 76px;
-  height: 76px;
-  transform: scale(1.18);
+/* Nombre debajo */
+.insignia-card-nombre {
+  color: #c4c4cf;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  margin: 0;
+  line-height: 1.3;
+  max-width: 100%;
+  word-break: break-word;
 }
 
-.img-auto-dashboard {
-  width: 58px;
-  height: 58px;
-  transform: scale(1);
+/* Desbloqueada: brillo sutil */
+.insignia-card-on {
+  border-color: rgba(0, 212, 255, 0.18);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.07);
 }
 
-.insignia-on {
-  box-shadow: 0 0 14px rgba(0, 212, 255, 0.06);
+.insignia-card-on .insignia-card-img-wrap {
+  border-color: rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 14px rgba(0, 212, 255, 0.15);
+}
+
+.insignia-card-on .insignia-card-nombre {
+  color: #e2e2f0;
+}
+
+/* Bloqueada: gris / opaca */
+.insignia-card-off {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+
+.insignia-card-off:hover {
+  opacity: 0.65;
+  filter: grayscale(0.3);
+}
+
+/* Check de desbloqueada */
+.insignia-card-badge {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  background: #10b981;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .texto-insignias-resumen {
   font-size: 11px;
 }
 
+/* Responsive modal grid */
+@media (max-width: 700px) {
+  .insignias-modal-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 440px) {
+  .insignias-modal-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .insignia-card-img-wrap {
+    width: 54px;
+    height: 54px;
+  }
+}
+
 /* =========================
-   Responsive
+   Scroll global fix
+========================= */
+.ant-layout {
+  min-height: 100vh !important;
+}
+
+.ant-layout-content {
+  overflow-y: auto;
+}
+
+/* =========================
+   Responsive — tablet (≤1280)
 ========================= */
 @media (max-width: 1280px) {
   .hero-alto,
@@ -722,11 +812,26 @@ body {
 
   .lista-scroll {
     max-height: 320px;
-    overflow: auto;
+    overflow-y: auto;
+  }
+
+  /* KPI grid: 2 cols en tablet */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    min-height: auto;
+  }
+
+  .kpi-alto {
+    min-height: auto;
   }
 }
 
+/* =========================
+   Responsive — móvil (≤768)
+========================= */
 @media (max-width: 768px) {
+
+  /* ── Body & layout base ── */
   body {
     overflow: auto;
   }
@@ -743,33 +848,194 @@ body {
     height: auto !important;
   }
 
+  /* ── Dashboard KPIs: 2 columnas en móvil ── */
   .kpi-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    min-height: auto;
   }
 
+  .kpi-valor {
+    font-size: 1.15rem !important;
+  }
+
+  .hero-alto,
+  .kpi-alto {
+    min-height: auto;
+  }
+
+  /* Botones del hero apilados */
+  .btn-fintech {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Movimientos: stack vertical */
   .item-movimiento {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 6px;
   }
 
+  .mov-monto {
+    font-size: 13px;
+  }
+
+  /* Lista movimientos más pequeña en móvil */
+  .lista-scroll {
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  /* ── Dashboard grid ── */
+  .dashboard-grid {
+    gap: 10px;
+    padding-bottom: 80px;
+  }
+
+  /* ── Insignias página completa ── */
   .insignia-card-page {
-    min-height: 250px;
-    padding: 16px 14px;
+    min-height: 200px;
+    padding: 14px 10px;
   }
 
   .insignia-card-icono {
-    width: 100px;
-    height: 100px;
+    width: 90px;
+    height: 90px;
   }
 
   .img-normal {
-    width: 92px;
-    height: 92px;
-    transform: scale(1.24);
+    width: 84px;
+    height: 84px;
+    transform: scale(1.2);
   }
 
   .img-auto {
-    width: 70px;
-    height: 70px;
+    width: 66px;
+    height: 66px;
   }
+
+  /* ── Ant Design cards ── */
+  .ant-card-body {
+    padding: 12px !important;
+  }
+
+  /* ── Modal insignias en móvil ── */
+  .ant-modal {
+    max-width: calc(100vw - 32px) !important;
+    margin: 16px auto !important;
+  }
+
+  .insignias-modal-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+}
+
+/* =========================
+   Responsive — pequeño (≤480)
+========================= */
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .kpi-valor {
+    font-size: 1rem !important;
+  }
+
+  .insignias-modal-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .insignia-card-img-wrap {
+    width: 50px;
+    height: 50px;
+  }
+
+  .insignia-card-nombre {
+    font-size: 10px;
+  }
+
+  /* Header de páginas en pantalla muy pequeña */
+  h1 {
+    font-size: 20px !important;
+  }
+}
+
+/* =========================
+   Modal insignias oscuro
+========================= */
+
+/* Ant Design v6 usa estos selectores internos */
+.modal-insignias-dark,
+.modal-insignias-dark .ant-modal,
+.modal-insignias-dark .ant-modal-content,
+.modal-insignias-dark > div,
+.modal-insignias-dark > div > div {
+  background: #0f1117 !important;
+}
+
+.modal-insignias-dark .ant-modal-content {
+  background: #0f1117 !important;
+  border: 1px solid #1f2235 !important;
+  border-radius: 20px !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8) !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.modal-insignias-dark .ant-modal-header {
+  background: #0f1117 !important;
+  border-bottom: 1px solid #1f2235 !important;
+  border-radius: 20px 20px 0 0 !important;
+  margin: 0 !important;
+  padding: 16px 24px !important;
+}
+
+.modal-insignias-dark .ant-modal-title {
+  color: #f5f5f5 !important;
+  font-weight: 700 !important;
+  font-size: 16px !important;
+}
+
+.modal-insignias-dark .ant-modal-body {
+  background: #0f1117 !important;
+  padding: 20px 24px 24px !important;
+}
+
+/* X de cerrar — blanca siempre */
+.modal-insignias-dark .ant-modal-close {
+  color: #fff !important;
+  top: 14px !important;
+  right: 14px !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255,255,255,0.06) !important;
+  transition: background 0.15s !important;
+}
+
+.modal-insignias-dark .ant-modal-close:hover {
+  color: #fff !important;
+  background: rgba(255,255,255,0.14) !important;
+}
+
+.modal-insignias-dark .ant-modal-close .ant-modal-close-x,
+.modal-insignias-dark .ant-modal-close svg,
+.modal-insignias-dark .ant-modal-close span {
+  color: #fff !important;
+  fill: #fff !important;
+}
+
+/* =========================
+   Animación modal Profile
+========================= */
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
 }

@@ -11,6 +11,36 @@ body {
   background: #f8fafc;
   color: #0f172a;
 }
+/* Mensaje de error debajo del input */
+.error-message {
+  color: #f87171;
+  font-size: 12px;
+  margin-top: 4px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 400;
+}
+/* Toast flotante */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  color: white;
+  font-weight: 500;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Input con error */
+.input-group.error input {
+  border-color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.05);
+}
 
 /* ===== CONTENEDOR ===== */
 .login-container {

@@ -152,7 +152,7 @@ const Register: React.FC = () => {
 
     if (!isValid) {
       // Mostrar un toast general también (opcional)
-      showToast("Por favor, completa todos los campos correctamente ❌", "error");
+      showToast("Por favor, completa todos los campos correctamente", "error");
       return;
     }
 
@@ -164,7 +164,7 @@ const Register: React.FC = () => {
         password: formData.password,
       });
       console.log("Respuesta:", response.data);
-      showToast("¡Cuenta creada exitosamente! 🚀", "success");
+      showToast("¡Cuenta creada exitosamente!", "success");
       setTimeout(() => navigate("/login"), 1500);
     } catch (error: any) {
       const errorMsg =
@@ -360,8 +360,25 @@ const Register: React.FC = () => {
         </div>
       </div>
 
-      {/* TOAST */}
-      {toast && <div className={`toast ${toast.type}`}>{toast.message}</div>}
+      {/* Modal Éxito */}
+      {toast?.type === 'success' && (
+        <div className="success-modal">
+          <div className="modal-content success">
+            <h3>¡Cuenta creada!</h3>
+            <p>{toast.message}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Error */}
+      {toast?.type === 'error' && (
+        <div className="error-modal">
+          <div className="modal-content error">
+            <h3>Datos erróneos</h3>
+            <p>{toast.message}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

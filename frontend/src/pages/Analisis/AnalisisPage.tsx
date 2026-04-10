@@ -4,9 +4,9 @@ import Sidebar from '../../components/Layout/Sidebar'
 import { analisisService } from '../../services/analisisService'
 import type { AnalisisFinanciero } from '../../types'
 import axios from 'axios'
+import { useAuth } from '../../context/AuthContext'
 
 const { Content } = Layout
-const USER_ID = 99
 
 interface AnalisisPageProps {
   noLeidas: number
@@ -94,6 +94,7 @@ function InfoIcon({ color }: { color: string }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function AnalisisPage({ noLeidas, recargar }: AnalisisPageProps) {
+  const { userId } = useAuth()
   const [analisis, setAnalisis] = useState<AnalisisFinanciero | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -119,7 +120,7 @@ export default function AnalisisPage({ noLeidas, recargar }: AnalisisPageProps) 
   const cargarDatos = async (silencioso = false) => {
     try {
       if (!silencioso) setLoading(true)
-      const [analisisData] = await Promise.all([analisisService.getAnalisis(USER_ID)])
+      const [analisisData] = await Promise.all([analisisService.getAnalisis(userId!)])
       setAnalisis(analisisData)
       setError('')
       setTimeout(() => recargar(), 500)
@@ -242,12 +243,12 @@ export default function AnalisisPage({ noLeidas, recargar }: AnalisisPageProps) 
   const contentPadding = isMobile ? '16px' : isTablet ? '24px 28px' : '32px 40px'
 
   return (
-    <Layout style={{ minHeight: '100vh', background: '#0a0d14' }}>
+    <Layout style={{ minHeight: '100vh', background: '#0f1117' }}>
       <Sidebar notificacionesNoLeidas={noLeidas} />
-      <Layout style={{ background: '#0a0d14' }}>
+      <Layout style={{ background: '#0f1117' }}>
         <Content style={{
           padding: contentPadding,
-          background: '#0a0d14',
+          background: '#0f1117',
           // Espacio para barra inferior en móvil
           paddingBottom: isMobile ? '80px' : (isTablet ? '28px' : '40px'),
         }}>

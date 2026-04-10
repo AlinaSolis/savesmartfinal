@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { Card, Col, Progress, Row, Typography, Layout as AntLayout } from "antd";
 import Sidebar from "../../components/Layout/Sidebar";
-import { badgesService } from '../../services/badgesService'
+import apiBadges from "../../services/apiBadges";
+import { notificacionesService } from "../../services/notificacionesService";
+import { useAuth } from '../../context/AuthContext'
 
 // --- IMPORTACIÓN DE IMÁGENES ---
 import sieteDiasAhorrando from "../../assets/insignias/7_Dias_Ahorrando.png";
@@ -28,7 +29,6 @@ import visionFinanciera from "../../assets/insignias/Vision_Financiera.png";
 
 const { Title, Text } = Typography;
 const { Content } = AntLayout;
-const USER_ID = 99; // Mismo ID que en NotificacionesPage
 
 type Insignia = {
   id: string;
@@ -104,6 +104,7 @@ function InsigniaCard({ item }: { item: Insignia }) {
 }
 
 export function Insignias() {
+  const { userId } = useAuth()
   // Estado con la lista dinámica conectada a la BD
   const [insigniasList, setInsigniasList] = useState<Insignia[]>(insigniasMock);
   const [cargando, setCargando] = useState(true);
@@ -112,9 +113,10 @@ export function Insignias() {
   // Obtener notificaciones no leídas (igual que en NotificacionesPage)
   useEffect(() => {
     const fetchNotificaciones = async () => {
+      if (!userId) return;
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/api/notificaciones?usuario_id=${USER_ID}`);
-        const noLeidas = response.data.notificaciones?.filter((n: any) => !n.leida).length || 0;
+        const data = await notificacionesService.getNotificaciones(userId);
+        const noLeidas = data.notificaciones?.filter((n: any) => !n.leida).length || 0;
         setNotificacionesNoLeidas(noLeidas);
       } catch (error) {
         console.error("Error al cargar notificaciones:", error);
@@ -129,7 +131,7 @@ export function Insignias() {
   useEffect(() => {
     const fetchBadges = async () => {
       try {
-        const userBadgesRes = await axios.get("http://127.0.0.1:8000/api/user/badges");
+        const userBadgesRes = await apiBadges.get("/user/badges");
         
         // Obtenemos los títulos de las insignias que el usuario ya ganó
         const unlockedTitles = userBadgesRes.data.map((b: { titulo: string }) => b.titulo);

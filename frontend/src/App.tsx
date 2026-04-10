@@ -9,46 +9,55 @@ import Login from './pages/Auth/Login'
 import Profile from './pages/Profile/Profile'
 import Register from './pages/Auth/Register'
 import { Dashboard } from './pages/Dashboard/Dashboard'
+import { AuthProvider, useAuth } from './context/AuthContext'
 
+// Ruta protegida: redirige a /login si no hay sesión
+function PrivateRoute({ children }: { children: React.ReactNode }) {
+  const { userId } = useAuth()
+  if (!userId) return <Navigate to="/login" replace />
+  return <>{children}</>
+}
+
+// Ruta pública: redirige al dashboard si ya hay sesión activa
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const { userId } = useAuth()
+  if (userId) return <Navigate to="/dashboard" replace />
+  return <>{children}</>
+}
 
 function AppContent() {
   const { noLeidas, recargar } = useNotificaciones()
 
   return (
-      <BrowserRouter>
+    <BrowserRouter>
       <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* Redirección inicial */}
-        <Route path="/" element={<Navigate to="/login" />} />
+        {/* Rutas públicas — redirigen al dashboard si ya está logueado */}
+        <Route path="/login"    element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
 
-        {/* Login */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/perfil" element={<Profile />} />
+        {/* Rutas protegidas */}
+        <Route path="/perfil"         element={<PrivateRoute><Profile noLeidas={noLeidas} /></PrivateRoute>} />
+        <Route path="/dashboard"      element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/transacciones"  element={<PrivateRoute><Transactions /></PrivateRoute>} />
+        <Route path="/analisis"       element={<PrivateRoute><AnalisisPage noLeidas={noLeidas} recargar={recargar} /></PrivateRoute>} />
+        <Route path="/notificaciones" element={<PrivateRoute><NotificacionesPage noLeidas={noLeidas} recargar={recargar} /></PrivateRoute>} />
+        <Route path="/historial"      element={<PrivateRoute><HistorialPage noLeidas={noLeidas} recargar={recargar} /></PrivateRoute>} />
 
-        {/* Paginas */}
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/analisis" element={
-          <AnalisisPage noLeidas={noLeidas} recargar={recargar} />
-        } />
-        <Route path="/notificaciones" element={
-          <NotificacionesPage noLeidas={noLeidas} recargar={recargar} />
-        } />
-        <Route path="/historial" element={
-          <HistorialPage noLeidas={noLeidas} recargar={recargar} />
-        } />
-        <Route path="/transacciones" element={<Transactions />} />
-
+        {/* Cualquier ruta desconocida → login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
-    
   )
 }
 
 export default function App() {
   return (
     <AntApp>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </AntApp>
   )
 }

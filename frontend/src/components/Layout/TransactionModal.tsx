@@ -3,6 +3,7 @@ import { renderIcon } from "../../utils/iconMap";
 import { showError, showSuccess } from "../../utils/sweetalert";
 import { categoryService } from "../../services/categoryService";
 import { transactionService } from "../../services/transactionService";
+import { useAuth } from "../../context/AuthContext";
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface Category {
 }
 
 export default function TransactionModal({ isOpen, onClose, onSave }: TransactionModalProps) {
+  const { userId } = useAuth();
   const [type, setType] = useState<string>("expense");
   const [amount, setAmount] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -27,8 +29,8 @@ export default function TransactionModal({ isOpen, onClose, onSave }: Transactio
   const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
 
   useEffect(() => {
-    if (isOpen) {
-      categoryService.getAllCategories()
+    if (isOpen && userId) {
+      categoryService.getAllCategories(userId)
         .then((data: any[]) => {
           const income: Category[] = data
             .filter((cat: any) => cat.type === "ingreso")
@@ -52,6 +54,7 @@ export default function TransactionModal({ isOpen, onClose, onSave }: Transactio
     if (!amount || !category || !date) return;
 
     const newTransactionData = {
+      user_id: userId,
       type,
       category: category.name,
       amount,
@@ -86,7 +89,8 @@ export default function TransactionModal({ isOpen, onClose, onSave }: Transactio
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
       onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()}
-        className="bg-[#0f1115] border border-gray-800 rounded-[2rem] w-full max-w-md p-8 shadow-2xl">
+        className="bg-[#0f1115] border border-gray-800 rounded-[2rem] w-full max-w-md mx-4 shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="p-8 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
         <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
           Nueva Transacción
         </h2>
@@ -172,6 +176,7 @@ export default function TransactionModal({ isOpen, onClose, onSave }: Transactio
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

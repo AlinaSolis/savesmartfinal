@@ -13,7 +13,7 @@ body {
 /* SIDEBAR */
 .sidebar {
   width: 260px;
-  background: #111827; /* 🔥 CAMBIO: menos oscuro */
+  background: #111827; /*CAMBIO: menos oscuro */
   padding: 30px 20px;
 }
 
@@ -40,7 +40,7 @@ body {
   cursor: pointer;
 }
 
-/* 🔥 CAMBIO: botón principal */
+/* CAMBIO: botón principal */
 .menu-title {
   display: flex;
   align-items: center;
@@ -77,7 +77,7 @@ body {
   padding: 10px;
   border-radius: 12px;
 
-  background: #1f2937; /* 🔥 recuadro */
+  background: #1f2937; /*recuadro */
   border: 1px solid rgba(255,255,255,0.08);
 }
 

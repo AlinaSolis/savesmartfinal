@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(node -e \"require.resolve\\('react-icons/hi'\\)\")",
+      "Bash(node -e \"try { const r = require.resolve\\('react-icons/hi'\\); console.log\\('FOUND:', r\\); } catch\\(e\\) { console.log\\('ERROR:', e.message\\); }\")",
+      "Bash(npm install:*)"
+    ]
+  }
+}

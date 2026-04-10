@@ -1,8 +1,8 @@
 import apiTransactions from './apiTransactions'
 
 export const transactionService = {
-  getAllTransactions: async () => {
-    const res = await apiTransactions.get('/transactions')
+  getAllTransactions: async (userId: number) => {
+    const res = await apiTransactions.get('/transactions', { params: { user_id: userId } })
     return res.data
   },
 

@@ -18,10 +18,10 @@ import Sidebar from '../../components/Layout/Sidebar'
 import { notificacionesService } from '../../services/notificacionesService'
 import type { Notificacion } from '../../types'
 import axios from 'axios'
+import { useAuth } from '../../context/AuthContext'
 
 const { Content } = Layout
 const { confirm } = Modal
-const USER_ID = 99
 
 interface NotificacionesPageProps {
   noLeidas: number
@@ -75,6 +75,7 @@ const tiempoRelativo = (fecha: string) => {
 }
 
 export default function NotificacionesPage({ noLeidas, recargar }: NotificacionesPageProps) {
+  const { userId } = useAuth()
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [filtro, setFiltro]   = useState<'todas' | 'no_leidas'>('todas')
   const [loading, setLoading] = useState(true)
@@ -97,7 +98,7 @@ export default function NotificacionesPage({ noLeidas, recargar }: Notificacione
   const cargarNotificaciones = async (silencioso = false) => {
     try {
       if (!silencioso) setLoading(true)
-      const data = await notificacionesService.getNotificaciones(USER_ID)
+      const data = await notificacionesService.getNotificaciones(userId!)
       setNotificaciones(data.notificaciones || [])
       setError('')
     } catch (err) {
@@ -128,7 +129,7 @@ export default function NotificacionesPage({ noLeidas, recargar }: Notificacione
 
   const marcarTodasLeidas = async () => {
     try {
-      await notificacionesService.marcarTodasLeidas(USER_ID)
+      await notificacionesService.marcarTodasLeidas(userId!)
       setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))
       recargar()
       message.success('Todas marcadas como leídas')
@@ -150,7 +151,7 @@ export default function NotificacionesPage({ noLeidas, recargar }: Notificacione
       onOk: async () => {
         try {
           setLimpiando(true)
-          await notificacionesService.limpiarTodas(USER_ID)
+          await notificacionesService.limpiarTodas(userId!)
           setNotificaciones([])
           recargar()
           message.success('Todas las notificaciones eliminadas')

@@ -9,6 +9,8 @@ import {
   LogoutOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { authService } from '../../services/authService'
+import { useAuth } from '../../context/AuthContext'
 
 const { Sider } = Layout
 
@@ -27,8 +29,15 @@ const NAV_ITEMS = [
 ]
 
 export default function Sidebar({ notificacionesNoLeidas = 0 }: SidebarProps) {
-  const navigate  = useNavigate()
-  const location  = useLocation()
+  const navigate     = useNavigate()
+  const location     = useLocation()
+  const { refreshUser } = useAuth()
+
+  const handleLogout = () => {
+    authService.signOut()
+    refreshUser()
+    navigate('/login', { replace: true })
+  }
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   useEffect(() => {
@@ -76,10 +85,11 @@ export default function Sidebar({ notificacionesNoLeidas = 0 }: SidebarProps) {
         {NAV_ITEMS.map(item => {
           const active = location.pathname === item.key
           const isBell = item.key === '/notificaciones'
+          const isLogout = item.key === '/cerrar-sesion'
           return (
             <button
               key={item.key}
-              onClick={() => navigate(item.key)}
+              onClick={() => isLogout ? handleLogout() : navigate(item.key)}
               style={{
                 flex: 1,
                 display: 'flex',
@@ -167,11 +177,6 @@ export default function Sidebar({ notificacionesNoLeidas = 0 }: SidebarProps) {
         padding: '24px 16px',
         borderBottom: '1px solid #1f2235',
       }}>
-
-        <div className="hidden lg:flex lg:w-64 bg-[#0f1115] border-r border-gray-800 min-h-screen p-6 flex-col">
-        
-       </div> 
-
         <h2 style={{ color: '#00d4ff', margin: 0, fontSize: 22, fontWeight: 'bold' }}>
           SaveSmart
         </h2>
@@ -183,7 +188,7 @@ export default function Sidebar({ notificacionesNoLeidas = 0 }: SidebarProps) {
       <Menu
         mode="inline"
         selectedKeys={[location.pathname]}
-        onClick={({ key }) => navigate(key)}
+        onClick={({ key }) => key === '/cerrar-sesion' ? handleLogout() : navigate(key)}
         items={menuItems}
         style={{ background: '#0f1117', border: 'none', marginTop: 16 }}
         theme="dark"

@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { notification } from 'antd'
 import { notificacionesService } from '../services/notificacionesService'
-
-const USER_ID = 99
+import { authService } from '../services/authService'
 
 // Mismo mapeo que NotificacionesPage
 const cfgPorNivel: Record<string, { color: string; glow: string }> = {
@@ -40,8 +39,10 @@ export function useNotificaciones() {
   const primeraVez = useRef<boolean>(true)
 
   const cargar = async () => {
+    const userId = authService.getUser()?.id
+    if (!userId) return
     try {
-      const data = await notificacionesService.getNotificaciones(USER_ID)
+      const data = await notificacionesService.getNotificaciones(userId)
       const nuevas = data.notificaciones.filter(n => !n.leida).length
 
       const ultima = data.notificaciones[0]

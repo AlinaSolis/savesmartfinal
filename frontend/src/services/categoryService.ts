@@ -2,8 +2,8 @@ import apiTransactions from './apiTransactions'
 
 export const categoryService = {
 
-  getAllCategories: async () => {
-    const res = await apiTransactions.get('/categories')
+  getAllCategories: async (userId?: number) => {
+    const res = await apiTransactions.get('/categories', { params: userId ? { user_id: userId } : {} })
     return res.data
   },
 

@@ -3,9 +3,9 @@ import { Layout, Spin, Card } from 'antd'
 import Sidebar from '../../components/Layout/Sidebar'
 import { analisisService } from '../../services/analisisService'
 import type { AnalisisHistorial } from '../../types'
+import { useAuth } from '../../context/AuthContext'
 
 const { Content } = Layout
-const USER_ID = 99
 
 interface HistorialPageProps {
   noLeidas: number
@@ -22,6 +22,7 @@ const nivelConfig = {
 const mesesNombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
 export default function HistorialPage({ noLeidas }: HistorialPageProps) {
+  const { userId } = useAuth()
   const [historial, setHistorial]   = useState<AnalisisHistorial[]>([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState('')
@@ -48,7 +49,7 @@ export default function HistorialPage({ noLeidas }: HistorialPageProps) {
   const cargarHistorial = async (silencioso = false) => {
     try {
       if (!silencioso) setLoading(true)
-      const data = await analisisService.getHistorial(USER_ID)
+      const data = await analisisService.getHistorial(userId!)
       setHistorial(data.historial || [])
     } catch {
       setError('Error al cargar el historial')

@@ -1,6 +1,9 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import "../../styles/app.css";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import apiBadges from "../../services/apiBadges";
+import { notificacionesService } from "../../services/notificacionesService";
+import { transactionService } from "../../services/transactionService";
 import {
   Button,
   Card,
@@ -15,7 +18,6 @@ import {
   Typography,
   Tooltip,
   Layout as AntLayout, // renombramos para evitar conflicto
-  theme,
   message,
 } from "antd";
 import {
@@ -28,6 +30,7 @@ import {
   SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import Sidebar from "../../components/Layout/Sidebar"; // 👈 importamos el Sidebar igual que en NotificacionesPage
+import { useAuth } from "../../context/AuthContext";
 
 // --- IMPORTACIÓN DE IMÁGENES ---
 import sieteDiasAhorrando from "../../assets/insignias/7_Dias_Ahorrando.png";
@@ -53,7 +56,6 @@ import visionFinanciera from "../../assets/insignias/Vision_Financiera.png";
 
 const { Title, Text } = Typography;
 const { Content } = AntLayout;
-const USER_ID = 99; // mismo ID que en NotificacionesPage
 
 type Movimiento = {
   id: string;
@@ -81,11 +83,9 @@ function dinero(n: number) {
   });
 }
 
-function formatearFecha(iso: string) {
-  return new Date(iso).toLocaleString("es-MX", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
+function formatearFecha(fecha: string) {
+  // La fecha ya viene formateada desde el backend ("09 Apr 2026"), la retornamos directamente
+  return fecha;
 }
 
 // Catálogo base con todas las imágenes
@@ -144,10 +144,10 @@ function InsigniaItem({ item }: { item: Insignia }) {
   return (
     <Tooltip
       title={
-        <div style={{ maxWidth: 240 }}>
+        <div style={{ maxWidth: 220 }}>
           <div style={{ fontWeight: 800, marginBottom: 4 }}>{item.nombre}</div>
-          <div style={{ opacity: 0.85, marginBottom: 8 }}>{item.descripcion}</div>
-          <div style={{ fontSize: 12, marginBottom: 6 }}>Progreso: {item.progreso}%</div>
+          <div style={{ opacity: 0.85, fontSize: 12, marginBottom: 8 }}>{item.descripcion}</div>
+          <div style={{ fontSize: 11, marginBottom: 4, color: "#a1a1aa" }}>Progreso: {item.progreso}%</div>
           <Progress
             percent={item.progreso}
             showInfo={false}
@@ -157,81 +157,119 @@ function InsigniaItem({ item }: { item: Insignia }) {
           />
         </div>
       }
+      placement="top"
     >
-      <div className={`insignia-dashboard ${item.desbloqueada ? "insignia-on" : "insignia-off"}`}>
-        <div className="insignia-dashboard-icono">
+      <div className={`insignia-card-item ${item.desbloqueada ? "insignia-card-on" : "insignia-card-off"}`}>
+        <div className="insignia-card-img-wrap">
           <img
             src={item.imagen}
             alt={item.nombre}
-            className={`insignia-dashboard-img ${
-              item.nombre === "Mi Primer Auto" ? "img-auto-dashboard" : "img-normal-dashboard"
-            }`}
+            className="insignia-card-img"
           />
         </div>
+        <p className="insignia-card-nombre">{item.nombre}</p>
+        {item.desbloqueada && (
+          <span className="insignia-card-badge">✓</span>
+        )}
       </div>
     </Tooltip>
   );
 }
 
 export function Dashboard() {
+  const { userId } = useAuth()
+  const navigate = useNavigate()
   const [modalInsignias, setModalInsignias] = useState(false);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [insignias, setInsignias] = useState<Insignia[]>(insigniasMock);
   const [statsBD, setStatsBD] = useState({ balance: 0, ingresos: 0, gastos: 0, ahorro: 0 });
   const [cargando, setCargando] = useState(true);
-  const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState(0); // 👈 para el Sidebar
-
-  // Obtener notificaciones no leídas (igual que en NotificacionesPage)
+  const [error, setError] = useState<string | null>(null);
+  const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState(0);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Obtener notificaciones no leídas
+  useEffect(() => {
+    if (!userId) return;
     const fetchNotificaciones = async () => {
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/api/notificaciones?usuario_id=${USER_ID}`);
-        const noLeidas = response.data.notificaciones?.filter((n: any) => !n.leida).length || 0;
+        const data = await notificacionesService.getNotificaciones(userId);
+        const noLeidas = data.notificaciones?.filter((n: any) => !n.leida).length || 0;
         setNotificacionesNoLeidas(noLeidas);
       } catch (error) {
         console.error("Error al cargar notificaciones:", error);
-        // Si falla, dejamos 0 para que el Sidebar no muestre nada extraño
       }
     };
     fetchNotificaciones();
-    const intervalo = setInterval(fetchNotificaciones, 10000); // actualizar cada 10s
+    const intervalo = setInterval(fetchNotificaciones, 10000);
     return () => clearInterval(intervalo);
-  }, []);
+  }, [userId]);
 
-  // EFECTO PARA TRAER DATOS DEL BACKEND (Dashboard)
-  useEffect(() => {
-    const fetchData = async () => {
+  // DATOS DEL BACKEND
+  const fetchData = useCallback(async () => {
+    setCargando(true);
+    setError(null);
+    try {
+      const txList: { id: number; title: string; category: string; amount: number; date: string }[] =
+        await transactionService.getAllTransactions(userId ?? 0);
+
+      const now = new Date();
+      const mesActual = now.getMonth();
+      const anioActual = now.getFullYear();
+      let ingresosMes = 0;
+      let gastosMes = 0;
+
+      const movimientosFormateados: Movimiento[] = txList.map((t) => {
+        const fechaObj = new Date(t.date);
+        if (fechaObj.getMonth() === mesActual && fechaObj.getFullYear() === anioActual) {
+          if (t.amount > 0) ingresosMes += t.amount;
+          else gastosMes += Math.abs(t.amount);
+        }
+        return {
+          id: String(t.id),
+          tipo: t.amount >= 0 ? "ingreso" : "gasto",
+          descripcion: t.title,
+          categoria: t.category,
+          monto: Math.abs(t.amount),
+          fecha: t.date,
+        };
+      });
+
+      setMovimientos(movimientosFormateados.slice(0, 5));
+      setStatsBD({
+        balance: txList.reduce((acc, t) => acc + t.amount, 0),
+        ingresos: ingresosMes,
+        gastos: gastosMes,
+        ahorro: Math.max(0, ingresosMes - gastosMes),
+      });
+
+      // Insignias — falla silenciosamente
       try {
-        const dashRes = await axios.get("http://127.0.0.1:8000/api/dashboard");
-        setMovimientos(dashRes.data.recent_transactions);
-        
-        setStatsBD({
-          balance: parseFloat(dashRes.data.stats.balance_total),
-          ingresos: parseFloat(dashRes.data.stats.ingresos_mes),
-          gastos: parseFloat(dashRes.data.stats.gastos_mes),
-          ahorro: parseFloat(dashRes.data.stats.ahorro_mes) || 0
-        });
-
-        const userBadgesRes = await axios.get("http://127.0.0.1:8000/api/user/badges");
+        const userBadgesRes = await apiBadges.get("/user/badges");
         const unlockedTitles = userBadgesRes.data.map((b: { titulo: string }) => b.titulo);
-
-        const updatedInsignias = insigniasMock.map(ins => ({
+        setInsignias(insigniasMock.map(ins => ({
           ...ins,
           desbloqueada: unlockedTitles.includes(ins.nombre),
-          progreso: unlockedTitles.includes(ins.nombre) ? 100 : ins.progreso
-        }));
+          progreso: unlockedTitles.includes(ins.nombre) ? 100 : ins.progreso,
+        })));
+      } catch { /* badges no disponible */ }
 
-        setInsignias(updatedInsignias);
-      } catch (error) {
-        console.error("Error al conectar con el backend:", error);
-        message.error("Error al cargar los datos del dashboard");
-      } finally {
-        setCargando(false);
-      }
-    };
+    } catch (err) {
+      console.error("Error al conectar con el backend:", err);
+      setError("No se pudo conectar con el servidor. Intenta de nuevo más tarde.");
+    } finally {
+      setCargando(false);
+    }
+  }, [userId]);
 
+  useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const resumen = useMemo(() => {
     const metaAhorro = 1500;
@@ -267,22 +305,82 @@ export function Dashboard() {
 
   return (
     <AntLayout style={{ minHeight: "100vh", background: "#0f1117" }}>
-      {/* Sidebar exactamente igual que en NotificacionesPage */}
       <Sidebar notificacionesNoLeidas={notificacionesNoLeidas} />
-      
-      <Content style={{ padding: "24px", background: "#0f1117" }}>
+
+      <Content style={{
+        padding: isMobile ? "16px" : "32px 40px",
+        background: "#0f1117",
+        paddingBottom: isMobile ? "80px" : "40px",
+        overflowY: "auto",
+        minHeight: "100vh",
+      }}>
         <div className="dashboard-grid">
-          <div className="dashboard-header">
-            <div>
-              <Title level={1} className="titulo-dashboard">Inicio</Title>
-              <Text className="texto-muted">
-                Controla tus gastos, registra ingresos y avanza en tus metas.
-              </Text>
+
+          {/* ── Header ── */}
+          <div style={{
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: isMobile ? "flex-start" : "center",
+            justifyContent: "space-between",
+            gap: isMobile ? 16 : 0,
+            marginBottom: isMobile ? 20 : 32,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 12 : 16 }}>
+              <div style={{
+                width: isMobile ? 42 : 52, height: isMobile ? 42 : 52,
+                borderRadius: 16,
+                background: "linear-gradient(135deg, #0891b2, #a855f7)",
+                boxShadow: "0 0 20px rgba(168,85,247,0.35)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
+              }}>
+                <WalletOutlined style={{ fontSize: isMobile ? 22 : 28, color: "#fff" }} />
+              </div>
+              <div>
+                <h1 style={{ color: "#f7f8f7", fontSize: isMobile ? 22 : 30, margin: 0, fontWeight: 700 }}>
+                  Inicio
+                </h1>
+                <p style={{ color: "#555", margin: 0, fontSize: isMobile ? 12 : 14 }}>
+                  Controla tus gastos, registra ingresos y avanza en tus metas.
+                </p>
+              </div>
             </div>
             <Tag color={resumen.balance >= 0 ? "cyan" : "red"} className="etiqueta-pill etiqueta-balance">
               {resumen.balance >= 0 ? "Balance estable" : "Balance en riesgo"}
             </Tag>
           </div>
+
+          {/* ── Error con Reintentar ── */}
+          {error && (
+            <div style={{
+              background: "#1a0f0f", border: "1px solid #ef444440",
+              borderRadius: 16, padding: isMobile ? "16px" : "24px 28px",
+              marginBottom: 24, display: "flex", alignItems: "center",
+              gap: isMobile ? 12 : 20,
+            }}>
+              <div style={{
+                width: isMobile ? 40 : 52, height: isMobile ? 40 : 52,
+                borderRadius: "50%", background: "rgba(239,68,68,0.12)",
+                border: "2px solid rgba(239,68,68,0.25)",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                  strokeWidth={1.5} stroke="#ef4444" width={isMobile ? 20 : 26} height={isMobile ? 20 : 26}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ color: "#ef4444", fontWeight: 700, fontSize: isMobile ? 13 : 15, margin: "0 0 4px" }}>Error de conexión</p>
+                <p style={{ color: "#6b7280", fontSize: isMobile ? 12 : 13, margin: 0 }}>{error}</p>
+              </div>
+              <button onClick={() => fetchData()} style={{
+                padding: isMobile ? "6px 12px" : "8px 18px", borderRadius: 10,
+                background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)",
+                color: "#ef4444", fontSize: isMobile ? 12 : 13, fontWeight: 600,
+                cursor: "pointer", flexShrink: 0,
+              }}>Reintentar</button>
+            </div>
+          )}
 
           <Row gutter={[16, 16]} className="fila-superior">
             <Col xs={24} lg={14}>
@@ -295,13 +393,13 @@ export function Dashboard() {
                     Hoy vas bien: revisa tus movimientos y ajusta tu presupuesto si es necesario.
                   </Text>
                   <Space wrap style={{ marginTop: 14 }}>
-                    <Button size="middle" className="btn-fintech btn-primario glow-primario" icon={<ArrowDownOutlined />}>
+                    <Button size="middle" className="btn-fintech btn-primario glow-primario" icon={<ArrowDownOutlined />} onClick={() => navigate("/transacciones")}>
                       Registrar gasto
                     </Button>
-                    <Button size="middle" className="btn-fintech btn-secundario glow-secundario" icon={<ArrowUpOutlined />}>
+                    <Button size="middle" className="btn-fintech btn-secundario glow-secundario" icon={<ArrowUpOutlined />} onClick={() => navigate("/transacciones")}>
                       Registrar ingreso
                     </Button>
-                    <Button size="middle" className="btn-fintech btn-neutro" icon={<TrophyOutlined />}>
+                    <Button size="middle" className="btn-fintech btn-neutro" icon={<TrophyOutlined />} onClick={() => navigate("/analisis")}>
                       Ver metas
                     </Button>
                   </Space>
@@ -414,18 +512,21 @@ export function Dashboard() {
           </Row>
 
           <Modal
-            title={<span style={{ color: "#f5f5f5" }}>Todas tus insignias</span>}
+            title={<span style={{ color: "#f5f5f5", fontWeight: 700 }}>Todas tus insignias</span>}
             open={modalInsignias}
             onCancel={() => setModalInsignias(false)}
             footer={null}
-            width={820}
-            className="glass" 
+            width={900}
+            wrapClassName="modal-insignias-dark"
+            style={{ "--ant-color-bg-elevated": "#0f1117" } as React.CSSProperties}
             styles={{
-              header: { background: "transparent", borderBottom: "1px solid rgba(255,255,255,0.06)" },
-              body: { paddingTop: 18, paddingBottom: 12 },
+              content: { background: "#0f1117", border: "1px solid #1f2235", borderRadius: 20, padding: 0, overflow: "hidden" },
+              header: { background: "#0f1117", borderBottom: "1px solid #1f2235", padding: "16px 24px", margin: 0 },
+              body: { background: "#0f1117", padding: "20px 24px 24px" },
+              mask: { backdropFilter: "blur(4px)", background: "rgba(0,0,0,0.7)" },
             }}
           >
-            <div className="insignias-grid-dashboard">
+            <div className="insignias-modal-grid">
               {insignias.map((i) => (
                 <InsigniaItem key={i.id} item={i} />
               ))}
