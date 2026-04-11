@@ -3,6 +3,7 @@ import { renderIcon } from "../../utils/iconMap";
 import { showError, showSuccess } from "../../utils/sweetalert";
 import { categoryService } from "../../services/categoryService";
 import { transactionService } from "../../services/transactionService";
+import apiBadges from "../../services/apiBadges";
 import { useAuth } from "../../context/AuthContext";
 
 interface TransactionModalProps {
@@ -27,6 +28,7 @@ export default function TransactionModal({ isOpen, onClose, onSave }: Transactio
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const [incomeCategories, setIncomeCategories] = useState<Category[]>([]);
   const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen && userId) {
@@ -48,6 +50,7 @@ export default function TransactionModal({ isOpen, onClose, onSave }: Transactio
   if (!isOpen) return null;
 
   const currentCategories = type === "income" ? incomeCategories : expenseCategories;
+  const isIncome = type === "income";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,8 +65,16 @@ export default function TransactionModal({ isOpen, onClose, onSave }: Transactio
       date,
     };
 
+    setIsLoading(true);
     transactionService.createTransaction(newTransactionData)
       .then((data) => {
+        // Notificar al servicio de insignias directamente desde el frontend
+        apiBadges.post('/internal/webhook/transaction', {
+          user_id: userId,
+          monto: parseFloat(amount),
+          tipo: type === 'income' ? 'ingreso' : 'gasto',
+        }).catch(() => { /* insignias no disponibles, continúa igual */ });
+
         onSave(data, newTransactionData);
         showSuccess("Transacción agregada correctamente");
         setAmount("");
@@ -76,7 +87,8 @@ export default function TransactionModal({ isOpen, onClose, onSave }: Transactio
       .catch((error) => {
         console.error("Error:", error);
         showError("Error al guardar la transacción. Inténtalo de nuevo.");
-      });
+      })
+      .finally(() => setIsLoading(false));
   };
 
   const handleTypeChange = (newType: string) => {
@@ -86,96 +98,322 @@ export default function TransactionModal({ isOpen, onClose, onSave }: Transactio
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
-      onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()}
-        className="bg-[#0f1115] border border-gray-800 rounded-[2rem] w-full max-w-md mx-4 shadow-2xl max-h-[90vh] flex flex-col">
-        <div className="p-8 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-        <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-          Nueva Transacción
-        </h2>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+    <div
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.65)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 50, padding: '16px',
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'linear-gradient(160deg, #111318 0%, #0d0f14 100%)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 24,
+          width: '100%',
+          maxWidth: 420,
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          padding: '24px 28px 0',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
           <div>
-            <label className="text-sm font-medium text-white mb-2 block">Tipo</label>
-            <div className="flex gap-4">
-              <button type="button" onClick={() => handleTypeChange("income")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium transition-colors ${type === "income" ? "bg-[#10b981] text-black" : "bg-[#1c1f26] text-gray-400 hover:bg-[#252932]"}`}>
-                Ingreso
-              </button>
-              <button type="button" onClick={() => handleTypeChange("expense")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium transition-colors ${type === "expense" ? "bg-[#ef4444] text-white" : "bg-[#1c1f26] text-gray-400 hover:bg-[#252932]"}`}>
-                Gasto
-              </button>
-            </div>
+            <h2 style={{
+              margin: 0,
+              fontSize: 20,
+              fontWeight: 700,
+              background: 'linear-gradient(90deg, #22d3ee, #a78bfa)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}>
+              Nueva Transacción
+            </h2>
+            <p style={{ margin: '4px 0 0', color: '#4b5563', fontSize: 13 }}>
+              Registra tu movimiento financiero
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 10,
+              width: 34, height: 34,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: '#6b7280', fontSize: 18, lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        </div>
 
-          <div className="relative">
-            <label className="text-sm font-medium text-white mb-2 block">Categoría</label>
-            <button type="button" onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-full bg-[#1c1f26] border border-gray-700 hover:border-gray-500 rounded-2xl px-4 py-3.5 text-left flex items-center justify-between text-white transition-colors">
-              <span className={!category ? "text-gray-400" : ""}>
-                {category ? category.name : "Selecciona una categoría"}
-              </span>
-              <svg className={`w-5 h-5 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+        {/* Divider */}
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '20px 0 0' }} />
 
-            {isDropdownOpen && (
-              <div className="absolute top-[85px] left-0 w-full bg-[#1c1f26] border border-gray-700 rounded-xl overflow-hidden z-10 shadow-lg">
-                <div className="px-4 py-3 border-b border-gray-600 text-gray-300 text-sm">Selecciona una categoría</div>
-                <div className="max-h-60 overflow-y-auto">
+        {/* Body */}
+        <div style={{ padding: '20px 28px 28px', overflowY: 'auto', flex: 1 }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+            {/* Tipo */}
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 8, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                Tipo
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => handleTypeChange("income")}
+                  style={{
+                    padding: '10px 0',
+                    borderRadius: 12,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                    border: isIncome ? '1px solid rgba(16,185,129,0.5)' : '1px solid rgba(255,255,255,0.07)',
+                    background: isIncome ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.03)',
+                    color: isIncome ? '#10b981' : '#6b7280',
+                  }}
+                >
+                  ↑ Ingreso
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTypeChange("expense")}
+                  style={{
+                    padding: '10px 0',
+                    borderRadius: 12,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                    border: !isIncome ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.07)',
+                    background: !isIncome ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.03)',
+                    color: !isIncome ? '#ef4444' : '#6b7280',
+                  }}
+                >
+                  ↓ Gasto
+                </button>
+              </div>
+            </div>
+
+            {/* Monto */}
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 8, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                Monto
+              </label>
+              <div style={{ position: 'relative' }}>
+                <span style={{
+                  position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+                  color: '#4b5563', fontSize: 15, fontWeight: 600, pointerEvents: 'none',
+                }}>$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 12,
+                    padding: '11px 14px 11px 28px',
+                    color: '#f3f4f6',
+                    fontSize: 15,
+                    outline: 'none',
+                  }}
+                  onFocus={e => e.target.style.borderColor = 'rgba(34,211,238,0.4)'}
+                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Categoría */}
+            <div style={{ position: 'relative' }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 8, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                Categoría
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                style={{
+                  width: '100%',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: isDropdownOpen ? '1px solid rgba(34,211,238,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 12,
+                  padding: '11px 14px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  transition: 'border-color 0.15s',
+                }}
+              >
+                <span style={{ fontSize: 14, color: category ? '#f3f4f6' : '#4b5563' }}>
+                  {category ? category.name : 'Selecciona una categoría'}
+                </span>
+                <svg
+                  style={{ width: 16, height: 16, color: '#6b7280', transform: isDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {isDropdownOpen && (
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
+                  background: '#141720',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  zIndex: 10,
+                  boxShadow: '0 16px 40px rgba(0,0,0,0.4)',
+                  maxHeight: 220,
+                  overflowY: 'auto',
+                }}>
                   {currentCategories.length === 0 ? (
-                    <div className="px-4 py-3 text-gray-400 text-center">Cargando...</div>
+                    <div style={{ padding: '12px 16px', color: '#6b7280', fontSize: 13, textAlign: 'center' }}>
+                      Sin categorías disponibles
+                    </div>
                   ) : (
                     currentCategories.map((cat) => (
-                      <button key={cat.id} type="button"
+                      <button
+                        key={cat.id}
+                        type="button"
                         onClick={() => { setCategory(cat); setIsDropdownOpen(false); }}
-                        className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${category?.id === cat.id ? "bg-cyan-500 text-white" : "text-gray-400 hover:bg-[#252932] hover:text-white"}`}>
-                        <span className="text-lg">{renderIcon(cat.icon, "w-5 h-5")}</span>
+                        style={{
+                          width: '100%', textAlign: 'left',
+                          padding: '10px 16px',
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          background: category?.id === cat.id ? 'rgba(34,211,238,0.08)' : 'transparent',
+                          border: 'none',
+                          borderBottom: '1px solid rgba(255,255,255,0.04)',
+                          cursor: 'pointer',
+                          color: category?.id === cat.id ? '#22d3ee' : '#d1d5db',
+                          fontSize: 14,
+                          transition: 'background 0.1s',
+                        }}
+                        onMouseEnter={e => { if (category?.id !== cat.id) e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                        onMouseLeave={e => { if (category?.id !== cat.id) e.currentTarget.style.background = 'transparent' }}
+                      >
+                        <span>{renderIcon(cat.icon, "w-4 h-4")}</span>
                         <span>{cat.name}</span>
                       </button>
                     ))
                   )}
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          <div>
-            <label className="text-sm font-medium text-white mb-2 block">Monto</label>
-            <input type="number" step="0.01" placeholder="0.00" value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full bg-[#1c1f26] border border-gray-700 rounded-2xl px-4 py-3.5 text-white placeholder-gray-500 focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all"
-              required />
-          </div>
+            {/* Descripción */}
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 8, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                Descripción <span style={{ color: '#374151', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Ej: Almuerzo en el centro"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 12,
+                  padding: '11px 14px',
+                  color: '#f3f4f6',
+                  fontSize: 14,
+                  outline: 'none',
+                }}
+                onFocus={e => e.target.style.borderColor = 'rgba(34,211,238,0.4)'}
+                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+              />
+            </div>
 
-          <div>
-            <label className="text-sm font-medium text-white mb-2 block">Descripción (opcional)</label>
-            <input type="text" placeholder="Ej: Almuerzo en el centro" value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-[#1c1f26] border border-gray-700 rounded-2xl px-4 py-3.5 text-white placeholder-gray-500 focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" />
-          </div>
+            {/* Fecha */}
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#9ca3af', marginBottom: 8, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                Fecha
+              </label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 12,
+                  padding: '11px 14px',
+                  color: '#f3f4f6',
+                  fontSize: 14,
+                  outline: 'none',
+                  colorScheme: 'dark',
+                }}
+                onFocus={e => e.target.style.borderColor = 'rgba(34,211,238,0.4)'}
+                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+                required
+              />
+            </div>
 
-          <div>
-            <label className="text-sm font-medium text-white mb-2 block">Fecha</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-[#1c1f26] border border-gray-700 rounded-2xl px-4 py-3.5 text-white focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all [color-scheme:dark]"
-              required />
-          </div>
+            {/* Botones */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: '12px 0',
+                  borderRadius: 12,
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  color: '#9ca3af',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                style={{
+                  padding: '12px 0',
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #22d3ee, #a78bfa)',
+                  border: 'none',
+                  color: '#0a0c10',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  opacity: isLoading ? 0.7 : 1,
+                  transition: 'opacity 0.15s',
+                }}
+              >
+                {isLoading ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
 
-          <div className="flex gap-4 mt-4">
-            <button type="button" onClick={onClose}
-              className="flex-1 px-6 py-4 rounded-2xl bg-[#1c1f26] hover:bg-[#252932] text-white font-medium transition-colors">
-              Cancelar
-            </button>
-            <button type="submit"
-              className="flex-1 px-6 py-4 rounded-2xl font-semibold text-black bg-gradient-to-r from-cyan-400 to-purple-500 hover:opacity-90 transition-opacity">
-              Agregar
-            </button>
-          </div>
-        </form>
+          </form>
         </div>
       </div>
     </div>

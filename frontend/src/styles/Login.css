@@ -31,9 +31,34 @@ body {
   border-radius: 10px;
   color: white;
   font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
   z-index: 9999;
-  animation: fadeIn 0.3s ease;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  animation: toastSlide 0.3s ease;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  min-width: 260px;
+  max-width: 360px;
+}
+
+.toast.success {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.toast.error {
+  background: linear-gradient(135deg, #b91c1c, #ef4444);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+@keyframes toastSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Input con error */

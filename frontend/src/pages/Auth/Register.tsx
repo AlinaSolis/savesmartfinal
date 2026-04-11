@@ -360,23 +360,10 @@ const Register: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal Éxito */}
-      {toast?.type === 'success' && (
-        <div className="success-modal">
-          <div className="modal-content success">
-            <h3>¡Cuenta creada!</h3>
-            <p>{toast.message}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Error */}
-      {toast?.type === 'error' && (
-        <div className="error-modal">
-          <div className="modal-content error">
-            <h3>Datos erróneos</h3>
-            <p>{toast.message}</p>
-          </div>
+      {/* Toast (éxito o error) */}
+      {toast && (
+        <div className={`toast ${toast.type}`}>
+          {toast.message}
         </div>
       )}
     </div>

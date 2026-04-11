@@ -16,8 +16,7 @@ const Login: React.FC = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showError, setShowError] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
@@ -78,12 +77,19 @@ const Login: React.FC = () => {
     }
   };
 
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Validar antes de enviar
     const isValid = validateAll();
-    if (!isValid) return;
+    if (!isValid) {
+      showToast("Por favor, completa todos los campos correctamente", "error");
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -92,23 +98,18 @@ const Login: React.FC = () => {
         password: formData.password,
       });
       refreshUser();
-      setShowSuccess(true);
+      showToast("¡Inicio de sesión exitoso!", "success");
       setTimeout(() => {
         navigate("/dashboard");
       }, 2000);
     } catch (error: any) {
       console.error(error);
-      setShowError(true);
-      setTimeout(() => {
-        setShowError(false);
-      }, 2000);
+      const errorMsg = error.response?.data?.message || "Correo o contraseña incorrectos";
+      showToast(errorMsg, "error");
     } finally {
       setIsLoading(false);
     }
   };
-
-  // Determinar si el botón debe estar deshabilitado
-  const isFormInvalid = !formData.email || !formData.password || !!errors.email || !!errors.password;
 
   return (
     <div className="login-container">
@@ -187,7 +188,7 @@ const Login: React.FC = () => {
             <button
               type="submit"
               className="submit-btn"
-              disabled={isLoading || isFormInvalid}
+              disabled={isLoading}
             >
               {isLoading ? "Ingresando..." : "Iniciar Sesión"}
             </button>
@@ -202,23 +203,10 @@ const Login: React.FC = () => {
         </div>
       </div>
 
-      {/* MODAL ÉXITO */}
-      {showSuccess && (
-        <div className="success-modal">
-          <div className="modal-content success">
-            <h3>Inicio de sesión exitoso</h3>
-            <p>Redirigiendo a tu perfil...</p>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL ERROR */}
-      {showError && (
-        <div className="error-modal">
-          <div className="modal-content error">
-            <h3>Datos erróneos</h3>
-            <p>Correo o contraseña incorrectos</p>
-          </div>
+      {/* TOAST */}
+      {toast && (
+        <div className={`toast ${toast.type}`}>
+          {toast.message}
         </div>
       )}
     </div>

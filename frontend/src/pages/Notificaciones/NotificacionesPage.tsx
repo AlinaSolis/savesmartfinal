@@ -110,10 +110,11 @@ export default function NotificacionesPage({ noLeidas, recargar }: Notificacione
   }
 
   useEffect(() => {
+    if (!userId) return
     cargarNotificaciones()
     const intervalo = setInterval(() => cargarNotificaciones(true), 10000)
     return () => clearInterval(intervalo)
-  }, [])
+  }, [userId])
 
   // ── Acciones ─────────────────────────────────────────────────────────────────
   const marcarLeida = async (id: number) => {

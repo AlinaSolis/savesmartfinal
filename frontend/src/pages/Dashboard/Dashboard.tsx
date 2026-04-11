@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
+import { metasService, type Meta } from "../../services/metasService";
 import "../../styles/app.css";
 import { useNavigate } from "react-router-dom";
 import apiBadges from "../../services/apiBadges";
@@ -112,6 +113,272 @@ const insigniasMock: Insignia[] = [
   { id: "20", nombre: "Planificador", descripcion: "Usa presupuestos mensuales.", desbloqueada: false, imagen: planificador, progreso: 65 },
 ];
 
+// ─── Metas / Goals ───────────────────────────────────────────────────────────
+const META_COLORS = [
+  { value: '#22d3ee' }, { value: '#10b981' }, { value: '#a855f7' },
+  { value: '#f59e0b' }, { value: '#f43f5e' }, { value: '#3b82f6' },
+];
+
+const META_EMOJIS = ['✈️','🚗','🏠','📚','💍','🏥','💻','🎓','🌴','🎯','💰','🏖️'];
+
+function GoalsModal({ isOpen, onClose, userId }: { isOpen: boolean; onClose: () => void; userId: number | null }) {
+  const [metas, setMetas] = React.useState<Meta[]>([]);
+  const [loadingMetas, setLoadingMetas] = React.useState(false);
+  const [savingMeta, setSavingMeta] = React.useState(false);
+  const [showForm, setShowForm] = React.useState(false);
+  const [editingMeta, setEditingMeta] = React.useState<Meta | null>(null);
+  const [nombre, setNombre] = React.useState('');
+  const [emoji, setEmoji] = React.useState('✈️');
+  const [objetivo, setObjetivo] = React.useState('');
+  const [ahorrado, setAhorrado] = React.useState('');
+  const [color, setColor] = React.useState('#22d3ee');
+  const [descripcion, setDescripcion] = React.useState('');
+
+  // Cargar metas al abrir
+  React.useEffect(() => {
+    if (!isOpen || !userId) return;
+    setLoadingMetas(true);
+    metasService.getAll(userId)
+      .then(setMetas)
+      .catch(() => setMetas([]))
+      .finally(() => setLoadingMetas(false));
+  }, [isOpen, userId]);
+
+  if (!isOpen) return null;
+
+  const openNew = () => {
+    setEditingMeta(null);
+    setNombre(''); setEmoji('✈️'); setObjetivo(''); setAhorrado(''); setColor('#22d3ee'); setDescripcion('');
+    setShowForm(true);
+  };
+
+  const openEdit = (m: Meta) => {
+    setEditingMeta(m);
+    setNombre(m.nombre); setEmoji(m.emoji); setObjetivo(String(m.objetivo));
+    setAhorrado(String(m.ahorrado)); setColor(m.color); setDescripcion(m.descripcion || '');
+    setShowForm(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nombre || !objetivo || !userId) return;
+    setSavingMeta(true);
+    const payload = {
+      user_id: userId,
+      nombre,
+      emoji,
+      descripcion,
+      objetivo: parseFloat(objetivo),
+      ahorrado: parseFloat(ahorrado || '0'),
+      color,
+    };
+    try {
+      if (editingMeta) {
+        const updated = await metasService.update(editingMeta.id, payload);
+        setMetas(prev => prev.map(m => m.id === editingMeta.id ? updated : m));
+      } else {
+        const created = await metasService.create(payload);
+        setMetas(prev => [created, ...prev]);
+      }
+      setShowForm(false);
+    } catch {
+      // silencioso — no bloquea la UI
+    } finally {
+      setSavingMeta(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!userId) return;
+    try {
+      await metasService.delete(id, userId);
+      setMetas(prev => prev.filter(m => m.id !== id));
+    } catch { /* silencioso */ }
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box',
+    background: '#0d0f14', border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: 12, padding: '11px 14px', color: '#f3f4f6',
+    fontSize: 14, outline: 'none', fontFamily: 'Inter, sans-serif',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block', fontSize: 12, fontWeight: 600, color: '#9ca3af',
+    marginBottom: 8, letterSpacing: '0.04em', textTransform: 'uppercase',
+  };
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: 'linear-gradient(160deg, #111318 0%, #0d0f14 100%)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 24, width: '100%', maxWidth: 480, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)', overflow: 'hidden' }}
+      >
+        {/* Header */}
+        <div style={{ padding: '24px 28px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, background: 'linear-gradient(90deg, #22d3ee, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              {showForm ? (editingMeta ? 'Editar Meta' : 'Nueva Meta') : 'Mis Metas'}
+            </h2>
+            <p style={{ margin: '4px 0 0', color: '#4b5563', fontSize: 13 }}>
+              {showForm ? 'Define tu objetivo de ahorro' : 'Controla tu progreso hacia tus sueños'}
+            </p>
+          </div>
+          <button
+            onClick={showForm ? () => setShowForm(false) : onClose}
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#6b7280', fontSize: 18, lineHeight: 1 }}
+          >×</button>
+        </div>
+
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '20px 0 0' }} />
+
+        {/* Body */}
+        <div style={{ padding: '20px 28px 28px', overflowY: 'auto', flex: 1 }}>
+          {!showForm ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {loadingMetas ? (
+                <div style={{ textAlign: 'center', padding: '32px 0', color: '#6b7280' }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>⏳</div>
+                  <p style={{ margin: 0, fontSize: 14 }}>Cargando metas...</p>
+                </div>
+              ) : metas.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '32px 0', color: '#4b5563' }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>🎯</div>
+                  <p style={{ margin: 0, fontSize: 15, color: '#6b7280' }}>Aún no tienes metas creadas</p>
+                  <p style={{ margin: '4px 0 0', fontSize: 13 }}>¡Crea tu primera meta y empieza a ahorrar!</p>
+                </div>
+              ) : metas.map(m => {
+                const pct = m.objetivo > 0 ? Math.min((m.ahorrado / m.objetivo) * 100, 100) : 0;
+                const done = pct >= 100;
+                return (
+                  <div key={m.id} style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${m.color}25`, borderRadius: 16, padding: '16px 18px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 30 }}>{m.emoji}</span>
+                        <div>
+                          <div style={{ color: '#f3f4f6', fontWeight: 600, fontSize: 15 }}>{m.nombre}</div>
+                          {m.descripcion && <div style={{ color: '#6b7280', fontSize: 12, marginTop: 2 }}>{m.descripcion}</div>}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        <button onClick={() => openEdit(m)} style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#9ca3af', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✏️</button>
+                        <button onClick={() => handleDelete(m.id)} style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', color: '#ef4444', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🗑️</button>
+                      </div>
+                    </div>
+                    {/* Barra de progreso */}
+                    <div style={{ height: 7, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden', marginBottom: 8 }}>
+                      <div style={{ height: '100%', borderRadius: 99, width: `${pct}%`, background: done ? '#10b981' : m.color, transition: 'width 0.6s ease' }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                      <span style={{ color: m.color, fontWeight: 600 }}>{dinero(m.ahorrado)}</span>
+                      <span style={{ color: done ? '#10b981' : '#6b7280' }}>
+                        {done ? '✅ ¡Meta alcanzada!' : `${Math.round(pct)}% — faltan ${dinero(m.objetivo - m.ahorrado)}`}
+                      </span>
+                      <span style={{ color: '#6b7280' }}>{dinero(m.objetivo)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <button
+                onClick={openNew}
+                style={{ marginTop: 4, padding: '13px 0', borderRadius: 12, background: 'linear-gradient(135deg, rgba(34,211,238,0.08), rgba(167,139,250,0.08))', border: '1px dashed rgba(34,211,238,0.3)', color: '#22d3ee', fontSize: 14, fontWeight: 600, cursor: 'pointer', width: '100%', transition: 'all 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(34,211,238,0.16), rgba(167,139,250,0.16))'}
+                onMouseLeave={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(34,211,238,0.08), rgba(167,139,250,0.08))'}
+              >+ Nueva meta</button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Emoji */}
+              <div>
+                <label style={labelStyle}>Icono</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {META_EMOJIS.map(e => (
+                    <button key={e} type="button" onClick={() => setEmoji(e)} style={{ width: 42, height: 42, borderRadius: 10, fontSize: 20, background: emoji === e ? 'rgba(34,211,238,0.15)' : 'rgba(255,255,255,0.03)', border: emoji === e ? '1px solid rgba(34,211,238,0.4)' : '1px solid rgba(255,255,255,0.07)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>{e}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Nombre */}
+              <div>
+                <label style={labelStyle}>Nombre de la meta</label>
+                <input type="text" placeholder="Ej: Viaje a Cancún, Mi primer auto" value={nombre} onChange={e => setNombre(e.target.value)} style={inputStyle} required
+                  onFocus={e => e.target.style.borderColor = 'rgba(34,211,238,0.4)'}
+                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'} />
+              </div>
+
+              {/* Descripción */}
+              <div>
+                <label style={labelStyle}>Descripción <span style={{ color: '#4b5563', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span></label>
+                <input type="text" placeholder="Ej: Vacaciones en diciembre" value={descripcion} onChange={e => setDescripcion(e.target.value)} style={inputStyle}
+                  onFocus={e => e.target.style.borderColor = 'rgba(34,211,238,0.4)'}
+                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'} />
+              </div>
+
+              {/* Montos */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Objetivo ($)</label>
+                  <input type="number" placeholder="0.00" min="0" step="0.01" value={objetivo} onChange={e => setObjetivo(e.target.value)} style={inputStyle} required
+                    onFocus={e => e.target.style.borderColor = 'rgba(34,211,238,0.4)'}
+                    onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Ya ahorrado ($)</label>
+                  <input type="number" placeholder="0.00" min="0" step="0.01" value={ahorrado} onChange={e => setAhorrado(e.target.value)} style={inputStyle}
+                    onFocus={e => e.target.style.borderColor = 'rgba(34,211,238,0.4)'}
+                    onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'} />
+                </div>
+              </div>
+
+              {/* Color */}
+              <div>
+                <label style={labelStyle}>Color</label>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {META_COLORS.map(c => (
+                    <button key={c.value} type="button" onClick={() => setColor(c.value)} style={{ width: 32, height: 32, borderRadius: '50%', background: c.value, border: color === c.value ? '3px solid #fff' : '2px solid transparent', cursor: 'pointer', transition: 'all 0.15s', boxShadow: color === c.value ? `0 0 12px ${c.value}90` : 'none' }} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview */}
+              {nombre && (
+                <div style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${color}30`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 26 }}>{emoji}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: '#f3f4f6', fontWeight: 600, fontSize: 14 }}>{nombre}</div>
+                    <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 99, marginTop: 6, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: 99, width: objetivo ? `${Math.min((parseFloat(ahorrado||'0')/parseFloat(objetivo))*100,100)}%` : '0%', background: color, transition: 'width 0.4s' }} />
+                    </div>
+                  </div>
+                  <span style={{ color, fontWeight: 700, fontSize: 13 }}>{objetivo ? `${Math.round(Math.min((parseFloat(ahorrado||'0')/parseFloat(objetivo))*100,100))}%` : '0%'}</span>
+                </div>
+              )}
+
+              {/* Botones */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
+                <button type="button" onClick={() => setShowForm(false)}
+                  style={{ padding: '12px 0', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: '#9ca3af', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                >Cancelar</button>
+                <button type="submit" disabled={savingMeta}
+                  style={{ padding: '12px 0', borderRadius: 12, background: 'linear-gradient(135deg, #22d3ee, #a78bfa)', border: 'none', color: '#0a0c10', fontSize: 14, fontWeight: 700, cursor: savingMeta ? 'not-allowed' : 'pointer', opacity: savingMeta ? 0.7 : 1 }}
+                >{savingMeta ? 'Guardando...' : editingMeta ? 'Guardar cambios' : 'Crear meta'}</button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function KpiCard(props: {
   titulo: string;
   valor: string;
@@ -180,8 +447,11 @@ export function Dashboard() {
   const { userId } = useAuth()
   const navigate = useNavigate()
   const [modalInsignias, setModalInsignias] = useState(false);
-  const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
+  const [modalMetas, setModalMetas] = useState(false);
+  const [todosMovimientos, setTodosMovimientos] = useState<Movimiento[]>([]);
+  const [paginaMovimientos, setPaginaMovimientos] = useState(0);
   const [insignias, setInsignias] = useState<Insignia[]>(insigniasMock);
+  const MOV_POR_PAGINA = 5;
   const [statsBD, setStatsBD] = useState({ balance: 0, ingresos: 0, gastos: 0, ahorro: 0 });
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -240,7 +510,8 @@ export function Dashboard() {
         };
       });
 
-      setMovimientos(movimientosFormateados.slice(0, 5));
+      setTodosMovimientos(movimientosFormateados);
+      setPaginaMovimientos(0);
       setStatsBD({
         balance: txList.reduce((acc, t) => acc + t.amount, 0),
         ingresos: ingresosMes,
@@ -250,7 +521,7 @@ export function Dashboard() {
 
       // Insignias — falla silenciosamente
       try {
-        const userBadgesRes = await apiBadges.get("/user/badges");
+        const userBadgesRes = await apiBadges.get(`/user/badges?user_id=${userId}`);
         const unlockedTitles = userBadgesRes.data.map((b: { titulo: string }) => b.titulo);
         setInsignias(insigniasMock.map(ins => ({
           ...ins,
@@ -288,6 +559,12 @@ export function Dashboard() {
       usoPresupuesto,
     };
   }, [statsBD]);
+
+  const movimientos = useMemo(
+    () => todosMovimientos.slice(paginaMovimientos * MOV_POR_PAGINA, (paginaMovimientos + 1) * MOV_POR_PAGINA),
+    [todosMovimientos, paginaMovimientos]
+  );
+  const totalPaginas = Math.ceil(todosMovimientos.length / MOV_POR_PAGINA);
 
   const insigniasDesbloqueadas = useMemo(() => insignias.filter((i) => i.desbloqueada), [insignias]);
   const insigniasDestacadas = useMemo(() => insigniasDesbloqueadas.slice(0, 4), [insigniasDesbloqueadas]);
@@ -399,7 +676,7 @@ export function Dashboard() {
                     <Button size="middle" className="btn-fintech btn-secundario glow-secundario" icon={<ArrowUpOutlined />} onClick={() => navigate("/transacciones")}>
                       Registrar ingreso
                     </Button>
-                    <Button size="middle" className="btn-fintech btn-neutro" icon={<TrophyOutlined />} onClick={() => navigate("/analisis")}>
+                    <Button size="middle" className="btn-fintech btn-neutro" icon={<TrophyOutlined />} onClick={() => setModalMetas(true)}>
                       Ver metas
                     </Button>
                   </Space>
@@ -461,7 +738,13 @@ export function Dashboard() {
               <Card
                 className="glass"
                 title={<Space><HistoryOutlined /><span style={{ color: "#f5f5f5" }}>Últimos movimientos</span></Space>}
-                extra={<Text className="texto-muted">Últimos {movimientos.length}</Text>}
+                extra={
+                  todosMovimientos.length > 0 && (
+                    <Text className="texto-muted">
+                      {paginaMovimientos * MOV_POR_PAGINA + 1}–{Math.min((paginaMovimientos + 1) * MOV_POR_PAGINA, todosMovimientos.length)} de {todosMovimientos.length}
+                    </Text>
+                  )
+                }
                 classNames={{ body: "card-body-sin-padding" }}
               >
                 <div className="lista-scroll">
@@ -489,6 +772,67 @@ export function Dashboard() {
                     }}
                   />
                 </div>
+
+                {/* Barra de navegación */}
+                {totalPaginas > 1 && (
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    padding: "12px 20px",
+                    borderTop: "1px solid rgba(255,255,255,0.06)",
+                  }}>
+                    <button
+                      onClick={() => setPaginaMovimientos(p => Math.max(0, p - 1))}
+                      disabled={paginaMovimientos === 0}
+                      style={{
+                        width: 32, height: 32, borderRadius: 8,
+                        background: paginaMovimientos === 0 ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.07)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        color: paginaMovimientos === 0 ? "#374151" : "#9ca3af",
+                        cursor: paginaMovimientos === 0 ? "not-allowed" : "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 14, transition: "all 0.15s",
+                      }}
+                    >‹</button>
+
+                    {Array.from({ length: totalPaginas }, (_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setPaginaMovimientos(i)}
+                        style={{
+                          width: 32, height: 32, borderRadius: 8,
+                          background: paginaMovimientos === i
+                            ? "linear-gradient(135deg, rgba(34,211,238,0.2), rgba(167,139,250,0.2))"
+                            : "rgba(255,255,255,0.03)",
+                          border: paginaMovimientos === i
+                            ? "1px solid rgba(34,211,238,0.4)"
+                            : "1px solid rgba(255,255,255,0.07)",
+                          color: paginaMovimientos === i ? "#22d3ee" : "#6b7280",
+                          cursor: "pointer",
+                          fontSize: 13,
+                          fontWeight: paginaMovimientos === i ? 700 : 400,
+                          transition: "all 0.15s",
+                        }}
+                      >{i + 1}</button>
+                    ))}
+
+                    <button
+                      onClick={() => setPaginaMovimientos(p => Math.min(totalPaginas - 1, p + 1))}
+                      disabled={paginaMovimientos === totalPaginas - 1}
+                      style={{
+                        width: 32, height: 32, borderRadius: 8,
+                        background: paginaMovimientos === totalPaginas - 1 ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.07)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        color: paginaMovimientos === totalPaginas - 1 ? "#374151" : "#9ca3af",
+                        cursor: paginaMovimientos === totalPaginas - 1 ? "not-allowed" : "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 14, transition: "all 0.15s",
+                      }}
+                    >›</button>
+                  </div>
+                )}
               </Card>
             </Col>
 
@@ -510,6 +854,13 @@ export function Dashboard() {
               </Card>
             </Col>
           </Row>
+
+          {/* ── Modal Metas ─────────────────────────────────────────────── */}
+          <GoalsModal
+            isOpen={modalMetas}
+            onClose={() => setModalMetas(false)}
+            userId={userId}
+          />
 
           <Modal
             title={<span style={{ color: "#f5f5f5", fontWeight: 700 }}>Todas tus insignias</span>}

@@ -40,13 +40,16 @@ function CategoryModal({ isOpen, onClose, onSave }: CategoryModalProps) {
   const [type, setType] = useState<string>("gasto");
   const [icon, setIcon] = useState<string>("wallet");
   const [customIcon, setCustomIcon] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;
 
+  const isIncome = type === "ingreso";
   const iconOptions = Object.entries(ICONS).map(([id, data]) => ({
     id,
     label: data.label,
   }));
+  const activeIcon = customIcon.trim() ? customIcon.trim() : icon;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,11 +58,12 @@ function CategoryModal({ isOpen, onClose, onSave }: CategoryModalProps) {
     const newCategoryData = {
       name,
       type,
-      icon_identifier: customIcon.trim() ? customIcon.trim() : icon,
+      icon_identifier: activeIcon,
       is_custom: true,
       user_id: userId,
     };
 
+    setIsLoading(true);
     categoryService.createCategory(newCategoryData)
       .then((data) => {
         onSave(data);
@@ -67,89 +71,215 @@ function CategoryModal({ isOpen, onClose, onSave }: CategoryModalProps) {
         setName("");
         setType("gasto");
         setIcon("wallet");
+        setCustomIcon("");
         onClose();
       })
       .catch((error) => {
         console.error("Error:", error);
         showError("Error al crear la categoría. Inténtalo de nuevo.");
-      });
+      })
+      .finally(() => setIsLoading(false));
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    boxSizing: 'border-box',
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    padding: '11px 14px',
+    color: '#f3f4f6',
+    fontSize: 14,
+    outline: 'none',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: 12,
+    fontWeight: 600,
+    color: '#9ca3af',
+    marginBottom: 8,
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase',
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
-      onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()}
-        className="bg-[#0f1115] border border-gray-800 rounded-[2rem] w-full max-w-md p-8 shadow-2xl">
-        <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-          Nueva Categoría
-        </h2>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+    <div
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.65)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 50, padding: '16px',
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'linear-gradient(160deg, #111318 0%, #0d0f14 100%)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 24,
+          width: '100%',
+          maxWidth: 420,
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Header */}
+        <div style={{ padding: '24px 28px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <label className="text-sm font-medium text-white mb-2 block">Nombre</label>
-            <input type="text" placeholder="Ej: Comida, Transporte" value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-[#1c1f26] border border-gray-700 rounded-2xl px-4 py-3.5 text-white placeholder-gray-500 focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all"
-              required />
+            <h2 style={{
+              margin: 0, fontSize: 20, fontWeight: 700,
+              background: 'linear-gradient(90deg, #22d3ee, #a78bfa)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            }}>
+              Nueva Categoría
+            </h2>
+            <p style={{ margin: '4px 0 0', color: '#4b5563', fontSize: 13 }}>
+              Organiza tus movimientos
+            </p>
           </div>
+          <button type="button" onClick={onClose} style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 10, width: 34, height: 34,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: '#6b7280', fontSize: 18, lineHeight: 1,
+          }}>×</button>
+        </div>
 
-          <div>
-            <label className="text-sm font-medium text-white mb-2 block">Tipo</label>
-            <div className="flex gap-4">
-              <button type="button" onClick={() => setType("ingreso")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium transition-colors ${type === "ingreso" ? "bg-cyan-500 text-black" : "bg-[#1c1f26] text-gray-400 hover:bg-[#252932]"}`}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
-                  <polyline points="16 7 22 7 22 13"></polyline>
-                </svg>
-                Ingreso
-              </button>
-              <button type="button" onClick={() => setType("gasto")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-medium transition-colors ${type === "gasto" ? "bg-fuchsia-500 text-white" : "bg-[#1c1f26] text-gray-400 hover:bg-[#252932]"}`}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="22 17 13.5 8.5 8.5 13.5 2 7"></polyline>
-                  <polyline points="16 17 22 17 22 11"></polyline>
-                </svg>
-                Gasto
-              </button>
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '20px 0 0' }} />
+
+        {/* Body */}
+        <div style={{ padding: '20px 28px 28px', overflowY: 'auto', flex: 1 }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+            {/* Nombre */}
+            <div>
+              <label style={labelStyle}>Nombre</label>
+              <input
+                type="text"
+                placeholder="Ej: Transporte, Salario"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                style={inputStyle}
+                onFocus={e => e.target.style.borderColor = 'rgba(34,211,238,0.4)'}
+                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+                required
+              />
             </div>
-          </div>
 
-          <div>
-            <label className="text-sm font-medium text-white mb-2 block">Icono</label>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#1c1f26] border border-gray-700 flex items-center justify-center">
-                {renderIcon(customIcon.trim() ? customIcon.trim() : icon, "w-6 h-6")}
+            {/* Tipo */}
+            <div>
+              <label style={labelStyle}>Tipo</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setType("ingreso")}
+                  style={{
+                    padding: '10px 0', borderRadius: 12,
+                    fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                    border: isIncome ? '1px solid rgba(16,185,129,0.5)' : '1px solid rgba(255,255,255,0.07)',
+                    background: isIncome ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.03)',
+                    color: isIncome ? '#10b981' : '#6b7280',
+                  }}
+                >↑ Ingreso</button>
+                <button
+                  type="button"
+                  onClick={() => setType("gasto")}
+                  style={{
+                    padding: '10px 0', borderRadius: 12,
+                    fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                    border: !isIncome ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(255,255,255,0.07)',
+                    background: !isIncome ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.03)',
+                    color: !isIncome ? '#ef4444' : '#6b7280',
+                  }}
+                >↓ Gasto</button>
               </div>
-              <span className="text-sm text-gray-300">Selecciona un icono para esta categoría</span>
             </div>
-            <select value={icon}
-              onChange={(e) => { setIcon(e.target.value); setCustomIcon(""); }}
-              className="w-full bg-[#1c1f26] border border-gray-700 rounded-2xl px-4 py-3.5 text-white focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all">
-              {iconOptions.map((opt) => (
-                <option key={opt.id} value={opt.id}>{opt.label} ({opt.id})</option>
-              ))}
-              <option value="custom">Otro...</option>
-            </select>
 
-            {icon === "custom" && (
-              <input type="text" placeholder="Ingresa el identificador (ej: wallet)"
-                value={customIcon} onChange={(e) => setCustomIcon(e.target.value)}
-                className="mt-3 w-full bg-[#1c1f26] border border-gray-700 rounded-2xl px-4 py-3.5 text-white placeholder-gray-500 focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" />
-            )}
-          </div>
+            {/* Icono */}
+            <div>
+              <label style={labelStyle}>Icono</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  {renderIcon(activeIcon, "w-5 h-5")}
+                </div>
+                <span style={{ fontSize: 13, color: '#6b7280' }}>Vista previa del icono seleccionado</span>
+              </div>
+              <select
+                value={icon}
+                onChange={(e) => { setIcon(e.target.value); setCustomIcon(""); }}
+                style={{
+                  ...inputStyle,
+                  cursor: 'pointer',
+                  colorScheme: 'dark',
+                  background: '#0d0f14',
+                  color: '#f3f4f6',
+                }}
+                onFocus={e => (e.target as HTMLSelectElement).style.borderColor = 'rgba(34,211,238,0.4)'}
+                onBlur={e => (e.target as HTMLSelectElement).style.borderColor = 'rgba(255,255,255,0.08)'}
+              >
+                {iconOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id} style={{ background: '#0d0f14', color: '#f3f4f6' }}>
+                    {opt.label} ({opt.id})
+                  </option>
+                ))}
+                <option value="custom" style={{ background: '#0d0f14', color: '#f3f4f6' }}>Otro...</option>
+              </select>
+              {icon === "custom" && (
+                <input
+                  type="text"
+                  placeholder="Identificador del icono (ej: wallet)"
+                  value={customIcon}
+                  onChange={(e) => setCustomIcon(e.target.value)}
+                  style={{ ...inputStyle, marginTop: 8 }}
+                  onFocus={e => e.target.style.borderColor = 'rgba(34,211,238,0.4)'}
+                  onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+                />
+              )}
+            </div>
 
-          <div className="flex gap-4 mt-4">
-            <button type="button" onClick={onClose}
-              className="flex-1 px-6 py-4 rounded-2xl bg-[#1c1f26] hover:bg-[#252932] text-white font-medium transition-colors">
-              Cancelar
-            </button>
-            <button type="submit"
-              className="flex-1 px-6 py-4 rounded-2xl font-semibold text-black bg-gradient-to-r from-cyan-400 to-purple-500 hover:opacity-90 transition-opacity">
-              Agregar
-            </button>
-          </div>
-        </form>
+            {/* Botones */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: '12px 0', borderRadius: 12,
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                  color: '#9ca3af', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+              >Cancelar</button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                style={{
+                  padding: '12px 0', borderRadius: 12,
+                  background: 'linear-gradient(135deg, #22d3ee, #a78bfa)',
+                  border: 'none',
+                  color: '#0a0c10', fontSize: 14, fontWeight: 700,
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  opacity: isLoading ? 0.7 : 1,
+                }}
+              >{isLoading ? 'Guardando...' : 'Crear Categoría'}</button>
+            </div>
+
+          </form>
+        </div>
       </div>
     </div>
   );

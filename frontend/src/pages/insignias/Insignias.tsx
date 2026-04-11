@@ -131,7 +131,7 @@ export function Insignias() {
   useEffect(() => {
     const fetchBadges = async () => {
       try {
-        const userBadgesRes = await apiBadges.get("/user/badges");
+        const userBadgesRes = await apiBadges.get(`/user/badges?user_id=${userId}`);
         
         // Obtenemos los títulos de las insignias que el usuario ya ganó
         const unlockedTitles = userBadgesRes.data.map((b: { titulo: string }) => b.titulo);

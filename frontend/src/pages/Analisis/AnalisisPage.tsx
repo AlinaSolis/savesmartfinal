@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { Layout, Card, Row, Col, Spin } from 'antd'
 import Sidebar from '../../components/Layout/Sidebar'
 import { analisisService } from '../../services/analisisService'
+import { transactionService } from '../../services/transactionService'
 import type { AnalisisFinanciero } from '../../types'
 import axios from 'axios'
 import { useAuth } from '../../context/AuthContext'
@@ -107,20 +108,51 @@ export default function AnalisisPage({ noLeidas, recargar }: AnalisisPageProps) 
   const isTablet = windowWidth < 1024
 
   useEffect(() => {
+    if (!userId) return
     cargarDatos()
-    const intervalo = setInterval(() => cargarDatos(true), 10000)
+    const intervalo = setInterval(() => cargarDatos(true), 30000)
     const handleResize = () => setWindowWidth(window.innerWidth)
     window.addEventListener('resize', handleResize)
     return () => {
       clearInterval(intervalo)
       window.removeEventListener('resize', handleResize)
     }
-  }, [])
+  }, [userId])
 
   const cargarDatos = async (silencioso = false) => {
+    if (!userId) return
     try {
       if (!silencioso) setLoading(true)
-      const [analisisData] = await Promise.all([analisisService.getAnalisis(userId!)])
+
+      // 1. Obtener transacciones del usuario
+      const transacciones = await transactionService.getAllTransactions(userId)
+
+      // 2. Calcular totales del mes actual
+      const now = new Date()
+      const mesActual = now.getMonth()
+      const anioActual = now.getFullYear()
+      let totalIngresos = 0
+      let totalGastos = 0
+
+      transacciones.forEach((t: any) => {
+        const fecha = new Date(t.date)
+        if (fecha.getMonth() === mesActual && fecha.getFullYear() === anioActual) {
+          if (t.amount > 0) totalIngresos += t.amount
+          else totalGastos += Math.abs(t.amount)
+        }
+      })
+
+      // 3. Solo generar análisis si hay datos
+      if (totalIngresos > 0 || totalGastos > 0) {
+        await analisisService.crearAnalisis({
+          user_id: userId,
+          total_ingresos: totalIngresos,
+          total_gastos: totalGastos,
+        })
+      }
+
+      // 4. Obtener el análisis actualizado
+      const analisisData = await analisisService.getAnalisis(userId)
       setAnalisis(analisisData)
       setError('')
       setTimeout(() => recargar(), 500)
@@ -413,92 +445,81 @@ export default function AnalisisPage({ noLeidas, recargar }: AnalisisPageProps) 
                   borderRadius: '50%', filter: 'blur(64px)', pointerEvents: 'none',
                 }} />
 
-                <div style={{ position: 'relative' }}>
-                  {/* Título y descripción siempre arriba */}
+                <div style={{
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  alignItems: isMobile ? 'center' : 'center',
+                  gap: isMobile ? '20px' : '40px',
+                }}>
+                  {/* Lado izquierdo: título + descripción + badge */}
                   <div style={{
-                    marginBottom: '16px',
+                    flex: 1,
                     textAlign: isMobile ? 'center' : 'left',
+                    order: isMobile ? 1 : 0,
                   }}>
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: '12px',
-                      marginBottom: '8px',
+                      marginBottom: '10px',
                       justifyContent: isMobile ? 'center' : 'flex-start',
                     }}>
                       {icons.estrella}
-                      <h2 style={{ color: '#fff', margin: 0, fontSize: isMobile ? '16px' : '20px', fontWeight: 700 }}>
+                      <h2 style={{ color: '#fff', margin: 0, fontSize: isMobile ? '16px' : '22px', fontWeight: 700 }}>
                         Puntuación de Salud Financiera
                       </h2>
                     </div>
                     <p style={{
-                      color: '#a1a1aa', margin: 0,
+                      color: '#a1a1aa', margin: '0 0 20px',
                       fontSize: isMobile ? '12px' : '14px',
-                      maxWidth: '440px',
+                      maxWidth: '480px',
                       marginLeft: isMobile ? 'auto' : '0',
                       marginRight: isMobile ? 'auto' : '0',
                     }}>
                       Análisis en tiempo real de tu situación financiera basado en tus ingresos, gastos y hábitos.
                     </p>
+                    {/* Badge de estado */}
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '8px',
+                      padding: '10px 18px', borderRadius: '14px',
+                      border: `1px solid ${puntuacionInfo.borderColor}`,
+                      backgroundColor: puntuacionInfo.bgColor,
+                    }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: puntuacionInfo.color, flexShrink: 0 }} />
+                      <span style={{ color: puntuacionInfo.color, fontSize: isMobile ? '12px' : '14px', fontWeight: 500 }}>
+                        {puntuacionInfo.submensaje}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Círculo + mensaje — en móvil círculo arriba, mensaje abajo */}
+                  {/* Lado derecho: círculo */}
                   <div style={{
-                    display: 'flex',
-                    flexDirection: isMobile ? 'column' : 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '24px',
+                    position: 'relative',
+                    width: isMobile ? '140px' : '160px',
+                    height: isMobile ? '140px' : '160px',
+                    flexShrink: 0,
+                    order: isMobile ? 0 : 1,
                   }}>
-                    {/* Círculo */}
+                    <svg width={isMobile ? '140' : '160'} height={isMobile ? '140' : '160'}
+                      viewBox="0 0 140 140" style={{ transform: 'rotate(-90deg)' }}>
+                      <circle cx="70" cy="70" r={radius} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="10" />
+                      <circle cx="70" cy="70" r={radius} fill="none"
+                        stroke={score < 50 ? '#ef4444' : score < 70 ? '#f59e0b' : score < 85 ? '#3b82f6' : '#10b981'}
+                        strokeWidth="10" strokeLinecap="round"
+                        strokeDasharray={circumference} strokeDashoffset={offset}
+                        style={{ transition: 'stroke-dashoffset 1s ease' }}
+                      />
+                    </svg>
                     <div style={{
-                      position: 'relative',
-                      width: isMobile ? '130px' : '180px',
-                      height: isMobile ? '130px' : '180px',
-                      flexShrink: 0,
-                      order: isMobile ? 0 : 1,
+                      position: 'absolute', inset: 0,
+                      display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <svg width={isMobile ? '130' : '180'} height={isMobile ? '130' : '180'}
-                        viewBox="0 0 140 140" style={{ transform: 'rotate(-90deg)' }}>
-                        <circle cx="70" cy="70" r={radius} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="10" />
-                        <circle cx="70" cy="70" r={radius} fill="none"
-                          stroke={score < 50 ? '#ef4444' : score < 70 ? '#f59e0b' : score < 85 ? '#3b82f6' : '#10b981'}
-                          strokeWidth="10" strokeLinecap="round"
-                          strokeDasharray={circumference} strokeDashoffset={offset}
-                          style={{ transition: 'stroke-dashoffset 1s ease' }}
-                        />
-                      </svg>
-                      <div style={{
-                        position: 'absolute', inset: 0,
-                        display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <span style={{ color: '#fff', fontSize: isMobile ? '26px' : '36px', fontWeight: 700, lineHeight: 1 }}>
-                          {score}
-                        </span>
-                        <span style={{ color: puntuacionInfo.color, fontSize: isMobile ? '11px' : '14px', fontWeight: 500, marginTop: '6px' }}>
-                          {puntuacionInfo.mensaje}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Mensaje de estado */}
-                    <div style={{
-                      flex: 1, width: '100%',
-                      textAlign: isMobile ? 'center' : 'left',
-                      order: isMobile ? 1 : 0,
-                    }}>
-                      <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '8px',
-                        padding: '8px 16px', borderRadius: '12px',
-                        border: `1px solid ${puntuacionInfo.borderColor}`,
-                        backgroundColor: puntuacionInfo.bgColor,
-                        maxWidth: '100%',
-                        justifyContent: isMobile ? 'center' : 'flex-start',
-                      }}>
-                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: puntuacionInfo.color, flexShrink: 0 }} />
-                        <span style={{ color: puntuacionInfo.color, fontSize: isMobile ? '12px' : '14px', fontWeight: 500, wordBreak: 'break-word' }}>
-                          {puntuacionInfo.submensaje}
-                        </span>
-                      </div>
+                      <span style={{ color: '#fff', fontSize: isMobile ? '28px' : '32px', fontWeight: 700, lineHeight: 1 }}>
+                        {score}
+                      </span>
+                      <span style={{ color: puntuacionInfo.color, fontSize: isMobile ? '11px' : '13px', fontWeight: 500, marginTop: '6px' }}>
+                        {puntuacionInfo.mensaje}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -533,28 +554,30 @@ export default function AnalisisPage({ noLeidas, recargar }: AnalisisPageProps) 
                     }}
                   >
                     <div style={{ position: 'relative' }}>
+                      {/* Fila superior: icono + label + tooltip */}
                       <div style={{
-                        display: 'flex', alignItems: 'center',
+                        display: 'flex', alignItems: 'flex-start',
                         justifyContent: 'space-between',
-                        marginBottom: isMobile ? '12px' : '16px',
+                        gap: '8px',
+                        marginBottom: isMobile ? '10px' : '14px',
                       }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
                           <div style={{
-                            padding: isMobile ? '4px 6px' : '5px 8px', borderRadius: '14px',
+                            padding: isMobile ? '5px' : '7px', borderRadius: '12px',
                             background: stat.iconBg || stat.bgColor,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             border: `1px solid ${stat.color}30`, flexShrink: 0,
                           }}>
-                            <span style={{ color: stat.color, fontSize: isMobile ? '16px' : '20px' }}>
+                            <span style={{ color: stat.color, display: 'flex' }}>
                               {stat.icon}
                             </span>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, flexWrap: 'wrap' }}>
                             <span style={{
                               color: '#9ca3af',
-                              fontSize: isMobile ? '13px' : '15px',
+                              fontSize: isMobile ? '12px' : '13px',
                               fontWeight: 500,
-                              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                              lineHeight: 1.3,
                             }}>
                               {stat.label}
                             </span>
@@ -565,24 +588,27 @@ export default function AnalisisPage({ noLeidas, recargar }: AnalisisPageProps) 
                             )}
                           </div>
                         </div>
-
-                        <span style={{
-                          fontSize: isMobile ? '10px' : '12px', fontWeight: 500,
-                          padding: isMobile ? '3px 8px' : '4px 10px', borderRadius: '20px',
-                          flexShrink: 0, marginLeft: '6px',
-                          background: `${stat.color}20`, color: stat.color,
-                          border: `1px solid ${stat.color}40`,
-                        }}>
-                          {stat.trend}
-                        </span>
                       </div>
 
+                      {/* Valor grande */}
                       <div style={{
-                        fontSize: isMobile ? '22px' : '28px',
+                        fontSize: isMobile ? '24px' : '30px',
                         fontWeight: 700, color: '#fff', lineHeight: 1.2,
+                        marginBottom: '10px',
                       }}>
                         {stat.value}
                       </div>
+
+                      {/* Badge de tendencia abajo */}
+                      <span style={{
+                        display: 'inline-block',
+                        fontSize: isMobile ? '11px' : '12px', fontWeight: 500,
+                        padding: isMobile ? '3px 10px' : '4px 12px', borderRadius: '20px',
+                        background: `${stat.color}20`, color: stat.color,
+                        border: `1px solid ${stat.color}40`,
+                      }}>
+                        {stat.trend}
+                      </span>
                     </div>
                   </div>
                 ))}
