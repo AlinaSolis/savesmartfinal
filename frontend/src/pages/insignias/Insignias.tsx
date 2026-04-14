@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, Col, Progress, Row, Typography, Layout as AntLayout } from "antd";
 import Sidebar from "../../components/Layout/Sidebar";
 import apiBadges from "../../services/apiBadges";

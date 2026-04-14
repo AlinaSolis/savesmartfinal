@@ -19,7 +19,6 @@ import {
   Typography,
   Tooltip,
   Layout as AntLayout, // renombramos para evitar conflicto
-  message,
 } from "antd";
 import {
   ArrowDownOutlined,
@@ -871,7 +870,6 @@ export function Dashboard() {
             wrapClassName="modal-insignias-dark"
             style={{ "--ant-color-bg-elevated": "#0f1117" } as React.CSSProperties}
             styles={{
-              content: { background: "#0f1117", border: "1px solid #1f2235", borderRadius: 20, padding: 0, overflow: "hidden" },
               header: { background: "#0f1117", borderBottom: "1px solid #1f2235", padding: "16px 24px", margin: 0 },
               body: { background: "#0f1117", padding: "20px 24px 24px" },
               mask: { backdropFilter: "blur(4px)", background: "rgba(0,0,0,0.7)" },

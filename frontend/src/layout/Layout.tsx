@@ -1,4 +1,4 @@
-import { Layout as AntLayout, Menu, Typography, Badge } from "antd";
+import { Layout as AntLayout, Menu, Typography } from "antd";
 import {
   AppstoreOutlined,
   SwapOutlined,
